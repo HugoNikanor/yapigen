@@ -1,0 +1,15 @@
+---
+$schema: 'https://adrift.space/schemas/openapi-generator.json'
+input: test-schema.yaml
+output:
+  types: {path: '/${OUTDIR}/types.ts'}
+  validators: {path: '/${OUTDIR}/validators.ts'}
+  calls: {path: '/${OUTDIR}/calls.ts'}
+  common: {path: '/${OUTDIR}/common.ts'}
+  server_handler_types: {path: '/${OUTDIR}/server-handler-types.ts'}
+  server_router: {path: '/${OUTDIR}/server-router.ts'}
+
+include_source_locations: false
+
+# TODO include at least on custom string format
+string-formats: {}

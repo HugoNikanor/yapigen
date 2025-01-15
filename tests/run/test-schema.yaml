@@ -1,0 +1,127 @@
+---
+openapi: 3.1.0
+servers:
+  - url: 'http://test.example.com/'
+info: 
+  title: Test schema for generator
+  description: .
+  version: '0.0.1'
+
+paths:
+  /{id}:
+    parameters:
+      - name: id
+        schema: { type: string }
+        required: true
+        in: path
+    post:
+      operationId: putQuery
+      description: .
+
+      parameters:
+        - name: page
+          schema: { type: number }
+          required: false
+          in: query
+        - name: since
+          schema:
+            type: string
+            format: date-time
+          required: true
+          in: header
+        - name: optional-header
+          in: header
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { type: number }
+
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: number
+
+      responses:
+        '200':
+          description: .
+          headers:
+            last-updated:
+              required: true
+              schema:
+                type: string
+                format: date-time
+            creation-date:
+              required: false
+              schema:
+                type: string
+                format: date-time
+
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {$ref: '#/components/schemas/Entry'}
+
+            application/binary: {}
+
+            image/png: {}
+
+            text/plain:
+              schema:
+                type: string
+
+        '204':
+          description: .
+
+        '401':
+          description: .
+
+  /something-else:
+    get:
+      description: >-
+        Endpoint with no headers
+      responses:
+        '200':
+          description: .
+
+# This example crashes the program, since complex headers aren't
+# propely implemented.
+# /exploding-headers:
+#   get:
+#     operationId: explodingHeaders
+#     description: .
+#     parameters:
+#       - name: 'colors'
+#         in: header
+#         schema:
+#           'text/plain':
+#             type: array
+#             items: { type: string }
+#         style: form
+#         explode: true
+#     responses:
+#       '204':
+#         description: .
+
+components:
+  schemas:
+    Entry:
+      title: 'EntryType'
+      type: object
+      required:
+        - id
+        - name
+      properties:
+        id: {$ref: '#/components/schemas/uuid'}
+        name:
+          type: string
+        last-modified:
+          type: string
+          format: date-time
+
+    uuid:
+      type: string
+      format: uuid

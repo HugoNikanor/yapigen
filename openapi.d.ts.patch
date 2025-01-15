@@ -1,0 +1,51 @@
+diff --git a/src/openapi.d.ts b/src/openapi.d.ts
+index 79b8411..fca6d65 100644
+--- a/src/openapi.d.ts
++++ b/src/openapi.d.ts
+@@ -197,7 +197,9 @@ export interface Tag {
+    */
+   [k: string]: unknown;
+ }
+-export interface Paths {}
++export interface Paths {
++  [path: string]: PathItem,
++}
+ /**
+  * This interface was referenced by `Paths`'s JSON-Schema definition
+  * via the `patternProperty` "^\/".
+@@ -272,7 +274,9 @@ export interface Schema {
+    * @minItems 1
+    */
+   enum?: [unknown, ...unknown[]];
+-  type?: "array" | "boolean" | "integer" | "number" | "object" | "string";
++  // TODO "null" here is apparently not supported?
++  // TODO how to presentent null values?
++  type?: "null" | "array" | "boolean" | "integer" | "number" | "object" | "string";
+   not?: Schema | Reference;
+   allOf?: (Schema | Reference)[];
+   oneOf?: (Schema | Reference)[];
+@@ -304,7 +308,7 @@ export interface Reference {
+    * This interface was referenced by `Reference`'s JSON-Schema definition
+    * via the `patternProperty` "^\$ref$".
+    */
+-  [k: string]: string;
++  $ref: string;
+ }
+ export interface Discriminator {
+   propertyName: string;
+@@ -396,7 +400,14 @@ export interface RequestBody {
+   [k: string]: unknown;
+ }
+ export interface Responses {
+-  default?: Response | Reference;
++  /* NOTE `default' disabled, since TypeScript claimed:
++         error TS2411: Property 'default' of type 'Reference |
++         Response | undefined' is not assignable to 'string' index
++         type 'Reference | Response'.
++   */
++
++  // default?: Response | Reference;
++  [status: string]: Response | Reference;
+ }
+ export interface Response {
+   description: string;
