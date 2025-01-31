@@ -111,6 +111,25 @@ class CodeFragment {
     }
     return result
   }
+
+  renderHTML(): string {
+    // TODO escape all special characters
+    const body = this.#fragment
+    // .replace('<', '&lt;')
+    // .replace('>', '&gt;')
+    // .replace('&', '&amp;')
+
+    const file = path.basename(this.#location?.path ?? '?')
+    const line = this.#location?.line ?? 'X'
+
+    console.log(body.replaceAll(/\s/g, '').split('').flatMap(c => [c, '\\s*']).join(''))
+
+    return `<span
+        class="fragment"
+        data-filename="${file}"
+        data-line="${line}"
+    >${body}</span>`
+  }
 }
 
 /**

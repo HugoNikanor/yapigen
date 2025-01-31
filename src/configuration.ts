@@ -65,6 +65,12 @@ type Configuration = {
    */
   include_source_locations?: boolean,
 
+  /** TODO document me */
+  html?: boolean | {
+    template: string,
+    pattern: string,
+  },
+
   /**
   User defined string formats.
 
@@ -166,6 +172,38 @@ const configuration_schema_partial = {
       type: 'boolean',
       description: `If generated code should be ran through
       \`prettier\`. Defaluts to true.`,
+    },
+    html: {
+      description: `
+      Instead of regular output, should an HTML file be create instead?
+      If set to true, then a partial HTML file only containing the
+      generated code will be emitted. However, if a template object is
+      provided, then that will be used.
+      `,
+      oneOf: [
+        { type: 'boolean' },
+        {
+          type: 'object',
+          required: ['template', 'pattern'],
+          properties: {
+            template: {
+              type: 'string',
+              example: './template.html',
+            },
+            pattern: {
+              type: 'string',
+              description: `
+              Pattern in template file which will be replaced with the
+              genaretd output. An exact string match is used.
+
+              Generally, this should be placed inside a \`<pre />\`
+              tag. with NO spaces on either side (like this:
+              \`<pre>CODE_HERE</pre>\`).
+              `,
+            },
+          },
+        }
+      ]
     },
     'string-formats': {
       type: 'object',
@@ -277,6 +315,10 @@ async function load_configuration_file(
     for (const output of Object.values(data.output!)) {
       output.path = resolve_path(base_filename, expand_vars(output.path))
     }
+  }
+
+  if ('html' in data && typeof data.html! === 'object') {
+    data.html.template = resolve_path(base_filename, data.html.template as string)
   }
 
   return data as Partial<Configuration>
@@ -426,6 +468,7 @@ function self_test() {
     },
     prettify: true,
     include_source_locations: false,
+    html: true,
     string_formats: {},
   } satisfies Required<Configuration>
 

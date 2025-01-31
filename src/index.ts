@@ -69,6 +69,7 @@ async function main(): Promise<number> {
   const config_common = {
     prettify: configuration.prettify ?? true,
     include_source_locations: configuration.include_source_locations ?? false,
+    html: configuration.html,
     generator_info: {
       version: package_json.version,
       schema_filename: configuration.input,
@@ -270,6 +271,7 @@ async function generate(args: {
   output_path: string,
   prettify?: boolean,
   include_source_locations?: boolean,
+  html?: Configuration['html'],
 }) {
 
   const frags: CodeFragment[] = []
@@ -297,13 +299,56 @@ async function generate(args: {
 
   frags.push(...args.content)
 
-  const result = frags.map((frag) => frag.render({
-    include_location: args.include_source_locations,
-  })).join('')
+  const result_list: string[] = frags.map((frag) => {
+    if (args.html) {
+      return frag.renderHTML()
+    } else {
+      return frag.render({
+        include_location: args.include_source_locations,
+      })
+    }
+  })
+
+  const result = result_list.join('')
 
   console.log('Writing', args.output_path)
   const outfile = await fs.open(args.output_path, 'w')
-  if (args.prettify) {
+
+  if (args.html) {
+
+    /*
+    TODO with how the HTML output works, we can't run the prettier
+    (or a syntax highlighter for that matter).
+
+prettier doesn't seem to support source maps. However, it's output is
+close enough to the original, that we should be able to construct
+regexes for each fragment matching its "pretty" self, allowing us to
+generate source maps after all.
+
+For syntax highlighting, something similar could be done.  Here, the
+input and output are identical. However, the source location tags and
+the highlighting tags may overlap.  For example, given the code
+fragment `return [1, 2]`, the generator might emit
+  <gen g="1">return [</gen><gen g="2">1, 2</gen><gen g="3">]</gen>
+while the highlighter emits
+  <hl-keyword>return</hl-keyword> <hl-list>[1, 2]</hl-list>
+This would lead to invalid tag stacking around the brackets.
+     */
+
+    if (typeof args.html === 'object') {
+      const template = await fs.readFile(args.html.template, { encoding: 'utf8' })
+      const idx = template.indexOf(args.html.pattern)
+      if (idx === -1) {
+        // TODO better error message
+        throw new Error('pattern not found in template')
+      }
+
+      const html_result = template.substring(0, idx)
+        + result
+        + template.substring(idx + args.html.pattern.length)
+      outfile.write(html_result)
+    }
+  } else if (args.prettify) {
     const pretty_result = await prettier.format(
       result, { parser: 'typescript' })
     outfile.write(pretty_result)
