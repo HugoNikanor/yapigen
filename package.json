@@ -1,6 +1,27 @@
 {
+  "name": "yapigen",
+  "version": "0.1.0",
+  "description": "OpenAPI to TypeScript code generator.",
+  "keywords": [
+    "openapi",
+    "openapi3",
+    "generator",
+    "typescript"
+  ],
+  "author": "Hugo Hörnquist <hugo@lysator.liu.se>",
+  "homepage": "https://github.com/HugoNikanor/yapigen",
+  "bugs": {
+    "url": "https://github.com/HugoNikanor/yapigen/issues"
+  },
   "license": "Apache-2.0",
+  "bin": {
+    "yapigen": "dist/src/entry-point.js"
+  },
+  "files": [
+    "dist"
+  ],
   "scripts": {
+    "prepack": "tsc && cp -r preambles/ dist/",
     "build": "tsc -b",
     "watch": "tsc -b -watch",
     "test": "mocha tests/unit/*.ts",

@@ -1,11 +1,17 @@
 {
   "compilerOptions": {
-    "sourceMap": true,
-    "moduleResolution": "node",
+    "allowArbitraryExtensions": true,
+    "declaration": false,
+    "declarationMap": false,
+    "sourceMap": false,
+    "lib": ["es2023"],
+    "module": "NodeNext",
+    "outDir": "./dist",
+    "resolveJsonModule": true,
+    "rewriteRelativeImportExtensions": true,
+    "moduleResolution": "NodeNext",
     "target": "es2021",
-    "module": "es2022",
-    "strict": true,
-    "outDir": "./build"
+    "strict": true
   },
-  "include": ["src", "tests"]
+  "include": ["src"]
 }

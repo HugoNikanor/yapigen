@@ -24,6 +24,7 @@ import { CodeFragment, cf } from './code-fragment'
 import { ts_string } from './formatters/util'
 import type { FormatSpec } from './json-schema-formats'
 import { DEFAULT_STRING_FORMATS } from './json-schema-formats'
+import package_json from '../package.json'
 import * as crypto from 'node:crypto'
 
 
@@ -69,7 +70,7 @@ async function main(): Promise<number> {
     prettify: configuration.prettify ?? true,
     include_source_locations: configuration.include_source_locations ?? false,
     generator_info: {
-      version: '0.1.0',
+      version: package_json.version,
       schema_filename: configuration.input,
       schema_hash: crypto.hash('sha1', bytes)
     },
