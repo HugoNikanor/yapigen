@@ -1,0 +1,39 @@
+digraph G {
+	graph [layout=dot]
+	bgcolor="#00000000"
+
+
+subgraph cluster_2 {
+	label="Common"
+	common
+	types
+	validators [color=red]
+}
+
+subgraph cluster_0 {
+	label="Client Only";
+	calls [color=green]
+}
+
+subgraph cluster_1 {
+	label="Server Only";
+	server_handler_types [color=blue]
+	server_router [color=orange]
+}
+
+subgraph cluster_3 {
+	label="External Dependencies"
+	node [shape="rectangle"]
+	todo_3 [label="Todo-3.0"] // TODO href
+	expressjs [label="Node Express", href="https://expressjs.com/"]
+	jsonschema [href="https://github.com/tdegrunt/jsonschema#readme"]
+}
+
+common -> {}
+types -> {}
+validators -> { jsonschema, common, types, validators } [color=red]
+calls -> { todo_3, common, types, validators } [color=green]
+server_handler_types -> { types } [color=blue]
+server_router -> { expressjs, server_handler_types, validators, common } [color=orange]
+
+}

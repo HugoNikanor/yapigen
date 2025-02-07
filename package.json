@@ -5,6 +5,7 @@
     "watch": "tsc -b -watch",
     "test": "mocha tests/unit/*.ts",
     "doc": "typedoc",
+    "render-readme": "./render-readme.sh",
     "coverage": "./run-coverage.sh",
     "coverage-debug": "./run-coverage.sh --include-source-locations"
   },
