@@ -101,7 +101,7 @@ async function main(): Promise<number> {
     })
 
   /* "Generate" common declaration file */
-  generate({
+  await generate({
     ...config_common,
     preamble_path: preamble('common.ts'),
     output_path: configuration.output.common.path,
@@ -110,7 +110,7 @@ async function main(): Promise<number> {
   })
 
   /* Generate file with type declarations */
-  generate({
+  await generate({
     ...config_common,
     // preamble_path: preamble('types.ts'),
     output_path: configuration.output.types.path,
@@ -129,7 +129,7 @@ async function main(): Promise<number> {
   {
     /* Generate type validators */
     const self = configuration.output.validators
-    generate({
+    await generate({
       ...config_common,
       preamble_path: preamble('type-validators.ts'),
       output_path: self.path,
@@ -172,7 +172,7 @@ validator.addSchema(
 
     /* Generate file with API calls */
     const self = configuration.output.calls
-    generate({
+    await generate({
       ...config_common,
       preamble_path: preamble('calls.ts'),
       output_path: self.path,
@@ -206,7 +206,7 @@ validator.addSchema(
   {
     /* Generate server handler types */
     const self = configuration.output.server_handler_types
-    generate({
+    await generate({
       ...config_common,
       preamble_path: preamble('server-types.ts'),
       output_path: self.path,
@@ -229,7 +229,7 @@ validator.addSchema(
   {
     /* Generate server handlers, and router */
     const self = configuration.output.server_router
-    generate({
+    await generate({
       ...config_common,
       preamble_path: preamble('router.ts'),
       output_path: self.path,
@@ -254,6 +254,8 @@ validator.addSchema(
       })(),
     })
   }
+
+  console.log()
 
   return 0
 }

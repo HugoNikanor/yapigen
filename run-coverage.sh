@@ -25,5 +25,4 @@ c8 --experimental-monocart --all --reporter=v8 tsx src/entry-point.ts --config "
 rm -f "$outdir_common/latest"
 ln -s "$OUTDIR" "$outdir_common/latest"
 
-echo
 echo "Output files written to $OUTDIR"
