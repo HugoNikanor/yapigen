@@ -101,6 +101,8 @@ function unpack_parameter_expression(
     let return_type_override: false | string = false
 
     const hname = JSON.stringify(header.name)
+    /* local variable holding the "normalized" value of the field */
+    const normalized = 'normalized'
 
     fragments.push(
       cf`(()=>{`,
@@ -108,7 +110,7 @@ function unpack_parameter_expression(
       This mostly means to parse numbers back into number objects,
       but may may parse more if we implement complex objects.
        */
-      cf`const normalized = `,
+      cf`const ${normalized} = `,
       (
         ['integer', 'number'].includes(schema.type!)
           ? cf`Number(${header_field})`
@@ -121,7 +123,7 @@ function unpack_parameter_expression(
     if ('enum' in schema) {
       const enumv = JSON.stringify(schema.enum!)
       fragments.push(cf`
-        if (!${enumv}.includes(normalized)) {
+      if (!${enumv}.includes(${normalized})) {
         throw new generator_common.InvalidData(
             'header', ${hname} + ' not in ' + ${enumv})
         }\n`)
@@ -131,7 +133,7 @@ function unpack_parameter_expression(
     if ('const' in schema) {
       const constv = JSON.stringify(schema.const!)
       fragments.push(cf`
-      if (${constv} !== normalized) {
+      if (${constv} !== ${normalized}) {
         throw new generator_common.InvalidData(
         'header', ${hname} + " !== " + ${constv})
       }\n`)
@@ -164,50 +166,50 @@ function unpack_parameter_expression(
       case 'number':
         if ('multipleOf' in schema) {
           fragments.push(...validator(
-            cf`normalized % ${schema.multipleOf} === 0`,
+            cf`${normalized} % ${schema.multipleOf} === 0`,
             cf`${hname} + " not a multiple of ${schema.multipleOf}"`))
         }
 
         if ('maximum' in schema) {
           fragments.push(...validator(
-            cf`normalized <= ${schema.maximum}`,
+            cf`${normalized} <= ${schema.maximum}`,
             cf`${hname} + " > ${schema.maximum}"`))
         }
         if ('exclusiveMaximum' in schema) {
           fragments.push(...validator(
-            cf`normalized < ${schema.exclusiveMaximum}`,
+            cf`${normalized} < ${schema.exclusiveMaximum}`,
             cf`${hname} + " => ${schema.exclusiveMaximum}"`))
         }
         if ('minimum' in schema) {
           fragments.push(...validator(
-            cf`normalized >= ${schema.minimum}`,
+            cf`${normalized} >= ${schema.minimum}`,
             cf`${hname} + " < ${schema.minimum}"`))
         }
         if ('exclusiveMinimum' in schema) {
           fragments.push(...validator(
-            cf`normalized > ${schema.minimum}`,
+            cf`${normalized} > ${schema.minimum}`,
             cf`${hname} + " <= ${schema.exclusiveMinimum}"`))
         }
 
-        fragments.push(cf`return normalised`)
+        fragments.push(cf`return ${normalized}`)
         break
 
       case 'string':
 
         if ('maxLength' in schema) {
           fragments.push(...validator(
-            cf`normalized.length <= ${schema.maxLength}`,
+            cf`${normalized}.length <= ${schema.maxLength}`,
             cf`${hname} + " too long"`,
           ))
         }
         if ('minLength' in schema) {
           fragments.push(...validator(
-            cf`normalized.length >= ${schema.minLength}`,
+            cf`${normalized}.length >= ${schema.minLength}`,
             cf`${hname} + " too short"`))
         }
         if ('pattern' in schema) {
           fragments.push(...validator(
-            cf`normalized.match(new RegExp(${JSON.stringify(schema.pattern)}))`,
+            cf`${normalized}.match(new RegExp(${JSON.stringify(schema.pattern)}))`,
             cf`${hname} + " failed to match a regex pattern"`))
         }
 
@@ -217,7 +219,7 @@ function unpack_parameter_expression(
             fragments.push(
               cf`return `,
               new CodeFragment(
-                string_formats[schema.format!]!.parse('normalized'))
+                string_formats[schema.format!]!.parse(normalized))
             )
             return_type_override = false
           } else {
@@ -225,7 +227,7 @@ function unpack_parameter_expression(
             throw new NotImplemented(`Strings with ${schema.format} format`)
           }
         } else {
-          fragments.push(cf`return normalized`)
+          fragments.push(cf`return ${normalized}`)
         }
 
         break
