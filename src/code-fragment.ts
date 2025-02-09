@@ -75,8 +75,7 @@ class CodeFragment {
       if ('stack' in e) {
         const trace = e.stack!.split('\n').slice(1)
 
-        const m = trace[1].match(/ *at (?<fun>(new )?\w+) \((?<path>[^:]+):(?<line>\d+):(?<column>\d+)\)/)
-
+        const m = trace[1].match(/ *at (?<fun>(new )?\S+ )?\(?(?<path>[^:]+):(?<line>\d+):(?<column>\d+)\)?/)
 
         /*
       if (m?.groups?.path === undefined) {
