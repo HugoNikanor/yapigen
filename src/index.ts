@@ -300,7 +300,8 @@ async function generate(args: {
   frags.push(...args.content)
 
   const result = frags.map((frag) => frag.render({
-    include_location: args.include_source_locations,
+    include_location: args.include_source_locations
+      ? { destination_file: args.output_path } : undefined,
   })).join('')
 
   console.log('Writing', args.output_path)

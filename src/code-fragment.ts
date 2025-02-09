@@ -17,6 +17,7 @@ where generated.
  */
 
 type Location = {
+  /** Absolute path to the source file which generated this fragment */
   path?: string
   line?: string
   column?: string
@@ -101,12 +102,20 @@ class CodeFragment {
   wil be inserted after the fragments text. Otherwise, the fragments
   text will be returned as is.
    */
-  render(args: { include_location?: boolean }): string {
+  render(args: {
+    include_location?: {
+      destination_file?: string,
+    }
+  }): string {
     let result = this.#fragment
     if (args.include_location) {
-      const file = path.basename(this.#location?.path ?? '?')
+      // const file = path.basename(this.#location?.path ?? '?')
+      const file = (args.include_location.destination_file && this.#location?.path)
+        ? (path.relative(path.dirname(args.include_location.destination_file), this.#location?.path))
+        : '?'
       const line = this.#location?.line ?? 'X'
-      result += `/* ${file}:${line} */`
+      const column = this.#location?.column ?? 'X'
+      result += `/* ${file}:${line}:${column} */`
     }
     return result
   }
