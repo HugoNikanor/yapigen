@@ -436,11 +436,6 @@ function format_operation_api_call(args: {
 }
 
 
-function gensym(hint?: string): string {
-  return `_${hint ? hint + '_' : ''}${String(Math.random()).substring(2)}`
-}
-
-
 /**
 Format an operation object into a TypeScript fragment containing a
 function declaration, whhich takes a user supplied "handler", and
@@ -449,6 +444,7 @@ returns an endpoint handler in the express.js meaning.
 function format_operation_as_server_endpoint_handler(args: {
   operation: Operation,
   shared_parameters: Parameter[],
+  gensym: (hint?: string) => string,
   string_formats: { [format: string]: FormatSpec },
   // format_bad_request: FormatBadRequest,
   document: OpenAPISpec,
@@ -467,7 +463,7 @@ function format_operation_as_server_endpoint_handler(args: {
 
   for (const parameter of all_parameters) {
 
-    const name = gensym('parameter')
+    const name = args.gensym('parameter')
 
     /* Retrieve parameter */
     switch (parameter.in) {

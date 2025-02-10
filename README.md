@@ -179,6 +179,8 @@ content to the current "config set".
 - `--output-<file> <path>`, set destination path for specific file. `<file>` is
   one of the files [specified above](#generated-files), with the semantics of
   [`configuration.output`](#output) when `libname` is unspecified.
+- `--gensym-seed <n>,<n>,<n>,<n>`, sets the seed used when generating symbols
+  for the resulting code.
 
 ### Configuration File Format
 
@@ -222,6 +224,11 @@ parameters
 
 Should [prettify][prettify] be ran on the generated code before writing
 it out?
+
+#### `gensym-seed`
+Seed for symbol generator. Takes an array of 4 32-bit integers (meaning that
+more significant bits than that will most likely be removed. Integers in
+Javascript are weird).
 
 #### `string_formats`
 Extra [string formats](#string-formats). A mapping from names to format

@@ -95,6 +95,7 @@ implemented on this endpoint.
 function format_path_item_as_server_endpoint_handlers(
   path: string,
   body: PathItem,
+  gensym: (hint?: string) => string,
   string_formats: { [format: string]: FormatSpec },
   document: OpenAPISpec,
 ): CodeFragment[] {
@@ -114,6 +115,7 @@ function format_path_item_as_server_endpoint_handlers(
     return [...format_operation_as_server_endpoint_handler({
       operation: body[op]!,
       shared_parameters: shared_parameters,
+      gensym: gensym,
       string_formats: string_formats,
       document: document,
     }), cf`\n`]

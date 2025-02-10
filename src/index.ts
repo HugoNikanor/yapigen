@@ -49,6 +49,8 @@ function get_import_path(current: OutputEntry, other: OutputEntry): string {
   return import_path
 }
 
+import { get_gensym } from './gensym'
+import { sfc32, randseed } from './srand'
 
 async function main(): Promise<number> {
   const configuration = await parse_command_line()
@@ -56,6 +58,8 @@ async function main(): Promise<number> {
   if (!configuration) return 1
 
   console.log('Continuing with configuration:', configuration)
+
+  const gensym = get_gensym(sfc32(...(configuration['gensym-seed'] ?? randseed())))
 
   const bytes = await fs.readFile(configuration.input, 'utf8')
   // TODO pass document through jsonschema's validator, ensuring
@@ -249,7 +253,7 @@ validator.addSchema(
         for (const [path, body] of Object.entries(document.paths)) {
           result.push(
             ...format_path_item_as_server_endpoint_handlers(
-              path, body, string_formats, document))
+              path, body, gensym, string_formats, document))
         }
 
         return result

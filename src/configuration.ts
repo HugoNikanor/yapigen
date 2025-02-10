@@ -76,6 +76,8 @@ type Configuration = {
   `"@string-format"`.
    */
   string_formats?: { [format: string]: FormatSpec },
+
+  'gensym-seed'?: [number, number, number, number],
 }
 
 
@@ -176,6 +178,12 @@ const configuration_schema_partial = {
       type: 'boolean',
       description: `If generated code should be ran through
       \`prettier\`. Defaluts to true.`,
+    },
+    'gensym-seed': {
+      type: 'array',
+      minItems: 4,
+      maxItems: 4,
+      items: { type: 'integer' },
     },
     'string-formats': {
       type: 'object',
@@ -354,6 +362,10 @@ async function parse_command_line(
         }
         break
 
+      case '--gensym-seed':
+        configuration['gensym-seed'] = process.argv[++i].split(',').map(x => Number(x)) as [number, number, number, number]
+        break
+
       default:
         /* Handle all --output-<part> flags at once. */
         const m = process.argv[i].match(/^--output-(.*)/)
@@ -441,6 +453,7 @@ function self_test() {
     },
     prettify: true,
     'include-source-locations': 'mapped',
+    'gensym-seed': [0, 0, 0, 0],
     string_formats: {},
   } satisfies Required<Configuration>
 
