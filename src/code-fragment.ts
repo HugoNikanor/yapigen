@@ -6,6 +6,12 @@ export {
 
 import * as path from 'node:path'
 import { concat, intersperse } from './util'
+import type { SourceMap } from './source-map'
+import {
+  find_source_location,
+  find_and_get_source_map,
+} from './source-map'
+import { assertUnreachable } from './unreachable'
 
 /**
 Representations of fragments of code.
@@ -18,9 +24,11 @@ where generated.
 
 type Location = {
   /** Absolute path to the source file which generated this fragment */
-  path?: string
-  line?: string
-  column?: string
+  path?: [string, 'absolute' | 'magic'],
+  /** 1-indexed line number into .path */
+  line?: number
+  /** 0-inedxed column number into .path[.line] */
+  column?: number
 }
 
 
@@ -31,6 +39,11 @@ class CodeFragment {
 
   #fragment: string
   #location: Location | undefined
+
+  static source_maps: Map<
+    string,
+    SourceMap | null
+  > = new Map
 
   /**
   @param fragment
@@ -85,10 +98,19 @@ class CodeFragment {
       }
          */
 
-        this.#location = {
-          path: m?.groups?.path,
-          line: m?.groups?.line,
-          column: m?.groups?.column,
+        this.#location = {}
+        if (m?.groups?.path) {
+          this.#location.path = [m.groups.path, 'absolute']
+        }
+
+        const line = Number(m?.groups?.line)
+        if (!isNaN(line)) {
+          this.#location.line = line
+        }
+
+        const column = Number(m?.groups?.column)
+        if (!isNaN(column)) {
+          this.#location.column = column
         }
       }
     }
@@ -97,24 +119,103 @@ class CodeFragment {
   /**
   Render this fragment into an actuall string.
 
+
   @param args.include_location
   If this is true, then a block comment containing the source location
   wil be inserted after the fragments text. Otherwise, the fragments
   text will be returned as is.
+
+  The source location may be passed through source maps. If that happens, the path will be "quoted".
    */
-  render(args: {
+  async render(args: {
     include_location?: {
-      destination_file?: string,
-    }
-  }): string {
+      generated_file: string,
+      format: 'raw' | 'mapped',
+    },
+  }): Promise<string> {
     let result = this.#fragment
     if (args.include_location) {
       // const file = path.basename(this.#location?.path ?? '?')
-      const file = (args.include_location.destination_file && this.#location?.path)
-        ? (path.relative(path.dirname(args.include_location.destination_file), this.#location?.path))
-        : '?'
-      const line = this.#location?.line ?? 'X'
-      const column = this.#location?.column ?? 'X'
+
+      /* Source location to output
+      These fields may be overwritten if we have a source map.
+       */
+      let file: string
+      if (this.#location?.path) {
+        switch (this.#location.path[1]) {
+          case 'absolute':
+            file = path.relative(
+              path.dirname(args.include_location.generated_file),
+              this.#location.path[0])
+            break
+          case 'magic':
+            file = this.#location.path[0]
+            break
+          default:
+            assertUnreachable(this.#location.path[1])
+        }
+      } else {
+        file = 'X'
+      }
+      let line = this.#location?.line ?? 'X'
+      let column = this.#location?.column ?? 'X'
+
+      if (args.include_location.format === 'mapped'
+        && this.#location
+        && this.#location.path
+        && this.#location.path[1] === 'absolute'
+        && this.#location.line
+        && this.#location.column
+      ) {
+
+        // open and read this.#location.path
+        // if it contains a source map, do all this
+        // otherwise, do as we did before
+
+        let source_map = CodeFragment.source_maps
+          .get(this.#location.path[0])
+
+        // console.log(CodeFragment.source_maps)
+
+        if (source_map === undefined) {
+          // console.log(`Fetching source map for ${this.#location.path}`)
+
+          source_map = await find_and_get_source_map(
+            /* We check for 'absolute' tag above. */
+            this.#location.path as [string, 'absolute']
+          )
+          CodeFragment.source_maps.set(this.#location.path[0], source_map)
+        }
+
+        if (source_map === null) {
+          /* We don't have a source map. Continue with the source
+          location in the actual file. */
+        } else {
+
+          const fragment = find_source_location(source_map, {
+            line: this.#location.line - 1,
+            column: this.#location.column,
+          })
+
+          if (fragment === 'generator' || fragment === null) {
+            /* The given location either couldn't be found in the
+            source file (`null`), or it was created by the generator
+            (`"generator"`). Keep the location in the actual file. */
+          } else {
+            if (fragment.file[1] === 'absolute') {
+              file = `"${path.relative(
+                path.dirname(args.include_location.generated_file),
+                fragment.file[0],
+              )}"`
+            } else {
+              file = `${fragment.file[0]}`
+            }
+            line = fragment.line + 1
+            column = fragment.column
+          }
+        }
+      }
+
       result += `/* ${file}:${line}:${column} */`
     }
     return result

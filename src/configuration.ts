@@ -63,7 +63,7 @@ type Configuration = {
   included in the output? This makes code "harder" to read as code,
   but makes finding source of bugs (in the generator) much easier.
    */
-  include_source_locations?: boolean,
+  'include-source-locations'?: 'raw' | 'mapped',
 
   /**
   User defined string formats.
@@ -157,10 +157,20 @@ const configuration_schema_partial = {
       },
     },
     'include-source-locations': {
-      type: 'boolean',
       description: `If true, then source locations (in the generator)
       for each generated code fragment will be present in the output,
-      as TypeScript comments. Defaults to false`,
+      as JavaScript comments.
+      Defaults to no comments. But if present a value of "raw" means to output the location from teh file which actually generated the code (e.g. our transpiled JavaScript version), while "mapped" looks for source maps, bringing us back to the TypeScript source.`,
+      oneOf: [
+        {
+          type: 'string',
+          enum: ['raw', 'mapped'],
+        },
+        {
+          type: 'boolean',
+          const: false,
+        },
+      ]
     },
     prettify: {
       type: 'boolean',
@@ -336,7 +346,12 @@ async function parse_command_line(
         break
 
       case '--include-source-locations':
-        configuration.include_source_locations = true
+        if (process.argv[i + 1] === 'raw') {
+          i++
+          configuration['include-source-locations'] = 'raw'
+        } else {
+          configuration['include-source-locations'] = 'mapped'
+        }
         break
 
       default:
@@ -425,7 +440,7 @@ function self_test() {
       server_router: { path: '' },
     },
     prettify: true,
-    include_source_locations: false,
+    'include-source-locations': 'mapped',
     string_formats: {},
   } satisfies Required<Configuration>
 

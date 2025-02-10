@@ -33,6 +33,7 @@
   "dependencies": {
     "jsonschema": "^1.5.0",
     "prettier": "^3.4.2",
+    "vlq": "^2.0.4",
     "yaml": "^2.7.0"
   },
   "devDependencies": {

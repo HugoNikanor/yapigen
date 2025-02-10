@@ -566,7 +566,7 @@ function handle_simple_parameter(
         // Shouldn't TypeScript figure out that it can't be `undefined`?
         return [new CodeFragment(
           spec.serialize(value + '!'),
-          { location: { path: '@string-format' } },
+          { location: { path: ['@string-format', 'magic'] } },
         )]
       }
 

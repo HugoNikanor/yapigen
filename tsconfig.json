@@ -3,7 +3,7 @@
     "allowArbitraryExtensions": true,
     "declaration": false,
     "declarationMap": false,
-    "sourceMap": false,
+    "sourceMap": true,
     "lib": ["es2023"],
     "module": "NodeNext",
     "outDir": "./dist",

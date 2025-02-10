@@ -132,7 +132,7 @@ function schema_to_typescript(
                 throw new NotImplemented(`Strings with ${schema.format} format`)
               }
               return [new CodeFragment(spec.type,
-                { location: { path: '@string-format' } })]
+                { location: { path: ['@string-format', 'magic'] } })]
             }
           }
         case 'array':
@@ -550,16 +550,16 @@ function schema_to_serializer_or_parser(
               // console.log(spec)
               if (spec.instanceof) {
                 parts.push(new CodeFragment(spec.instanceof(x),
-                  { location: { path: '@string-format' } },
+                  { location: { path: ['@string-format', 'magic'] } },
                 ))
               } else {
                 parts.push(cf`${x} instanceof `, new CodeFragment(spec.type,
-                  { location: { path: '@string-format' } },
+                  { location: { path: ['@string-format', 'magic'] } },
                 ))
               }
               parts.push(cf`) {return `,
                 new CodeFragment(spec.serialize(x),
-                  { location: { path: '@string-format' } },
+                  { location: { path: ['@string-format', 'magic'] } },
                 ),
                 cf`}`)
 

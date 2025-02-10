@@ -168,9 +168,11 @@ content to the current "config set".
   type from extension, unless `--conf-format` has been given beforehand.
   JSON files (with `.json` extension), and YAML files (with `.yaml` or `.yml`
   extension) are supported.
-- `--include-source-locations` enabled comments noting the source code location
-  in the generator for each generated code fragment. This is only to debug the
-  generator.
+- `--include-source-locations ["raw"]` enabled comments noting the
+  source code location in the generator for each generated code
+  fragment. This is only really to debug the generator.
+  By default, the generator files are checked for source maps. If you
+  however want the location in the actual file ran, pass `raw` as an argument.
 - `--input <openapi-file>`,
   OpenAPI file to use as input.
 - `--no-prettier`, don't run [prettier][prettier] on the generated code.

@@ -55,6 +55,8 @@ async function main(): Promise<number> {
 
   if (!configuration) return 1
 
+  console.log('Continuing with configuration:', configuration)
+
   const bytes = await fs.readFile(configuration.input, 'utf8')
   // TODO pass document through jsonschema's validator, ensuring
   // that it's at least ostensibly well-formed (a proper OpenAPI
@@ -68,7 +70,7 @@ async function main(): Promise<number> {
 
   const config_common = {
     prettify: configuration.prettify ?? true,
-    include_source_locations: configuration.include_source_locations ?? false,
+    source_locations: configuration['include-source-locations'] ?? false,
     generator_info: {
       version: package_json.version,
       schema_filename: configuration.input,
@@ -105,7 +107,7 @@ async function main(): Promise<number> {
     ...config_common,
     preamble_path: preamble('common.ts'),
     output_path: configuration.output.common.path,
-    include_source_locations: false,
+    source_locations: false,
     content: [],
   })
 
@@ -271,7 +273,7 @@ async function generate(args: {
   },
   output_path: string,
   prettify?: boolean,
-  include_source_locations?: boolean,
+  source_locations: 'raw' | 'mapped' | false,
 }) {
 
   const frags: CodeFragment[] = []
@@ -291,18 +293,28 @@ async function generate(args: {
     const preamble = await fs.readFile(args.preamble_path, 'utf-8')
     frags.push(new CodeFragment(preamble, {
       location: {
-        path: path.basename(args.preamble_path),
-        line: '1',
+        path: [
+          'preamble: ' + path.basename(args.preamble_path),
+          'magic',
+        ],
+        line: 1,
       }
     }))
   }
 
   frags.push(...args.content)
 
-  const result = frags.map((frag) => frag.render({
-    include_location: args.include_source_locations
-      ? { destination_file: args.output_path } : undefined,
-  })).join('')
+  let result: string = ''
+
+  for (const frag of frags) {
+    result += await frag.render({
+      include_location: args.source_locations
+        ? {
+          generated_file: args.output_path,
+          format: args.source_locations,
+        } : undefined,
+    })
+  }
 
   console.log('Writing', args.output_path)
   const outfile = await fs.open(args.output_path, 'w')
