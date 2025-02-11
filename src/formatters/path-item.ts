@@ -43,15 +43,25 @@ format_path_as_api_call(
 )
 ⇒ // TODO result
 ```
+
+@param args.generator_common_symbol
+Symbol which the common generated library is imported under.
+
+@param args.types_symbol
+symbol which the generated types is imported under.
  */
 function format_path_item_as_api_call(args: {
   path: string,
   body: PathItem,
   default_security: SecurityRequirement[],
+  generator_common_symbol: string,
+  types_symbol: string,
+
+  gensym: (hint?: string) => string,
   string_formats: { [format: string]: FormatSpec },
   document: OpenAPISpec,
 }): CodeFragment[] {
-  const parameters_object = 'path_parameters'
+  const parameters_object = args.gensym('path_parameters')
 
   // TODO path_placeholders should be passed to format_operation_api_call,
   // in that function, we will have a complete set of parameter declarations.
@@ -80,8 +90,12 @@ function format_path_item_as_api_call(args: {
       shared_parameters: shared_parameters,
       path_template: path_template,
       parameters_object: parameters_object,
-      string_formats: args.string_formats,
       default_security: args.default_security,
+      generator_common_symbol: args.generator_common_symbol,
+      types_symbol: args.types_symbol,
+
+      gensym: args.gensym,
+      string_formats: args.string_formats,
       document: args.document
     }), cf`\n`]
   }).filter(x => x)
@@ -91,19 +105,28 @@ function format_path_item_as_api_call(args: {
 /**
 Return a number of function declarations. One for each method
 implemented on this endpoint.
+
+@param args.generator_common_symbol
+Symbol which the common generated library is imported under.
+
+@param args.types_symbol
+Symbol the generated type library is imported under.
  */
-function format_path_item_as_server_endpoint_handlers(
+function format_path_item_as_server_endpoint_handlers(args: {
   path: string,
   body: PathItem,
+  generator_common_symbol: string,
+  types_symbol: string,
+
   gensym: (hint?: string) => string,
   string_formats: { [format: string]: FormatSpec },
   document: OpenAPISpec,
-): CodeFragment[] {
+}): CodeFragment[] {
   // We assume that all parameters have unique names
   // Even though two parameters with the same name could probably exist if they are inserted at different places
 
-  const shared_parameters = 'parameters' in body
-    ? body.parameters!.map(x => resolve(x, document))
+  const shared_parameters = 'parameters' in args.body
+    ? args.body.parameters!.map(x => resolve(x, args.document))
     : []
 
 
@@ -111,21 +134,29 @@ function format_path_item_as_server_endpoint_handlers(
   // parameters
 
   return operations.flatMap((op) => {
-    if (body[op] === undefined) return []
+    if (args.body[op] === undefined) return []
     return [...format_operation_as_server_endpoint_handler({
-      operation: body[op]!,
+      operation: args.body[op]!,
       shared_parameters: shared_parameters,
-      gensym: gensym,
-      string_formats: string_formats,
-      document: document,
+      generator_common_symbol: args.generator_common_symbol,
+      types_symbol: args.types_symbol,
+
+      gensym: args.gensym,
+      string_formats: args.string_formats,
+      document: args.document,
     }), cf`\n`]
   }).filter(x => x)
 }
 
 
+/**
+@param args.types_symbol
+symbol which the generated types is imported under.
+ */
 function format_path_item_as_server_handler_types(args: {
   path: string,
   body: PathItem,
+  types_symbol: string,
   string_formats: { [format: string]: FormatSpec },
   document: OpenAPISpec,
 }): CodeFragment[] {
@@ -145,6 +176,7 @@ function format_path_item_as_server_handler_types(args: {
       result.push(...format_operation_as_server_endpoint_handler_type({
         operation: args.body[op]!,
         shared_parameters: shared_parameters,
+        types_symbol: args.types_symbol,
         string_formats: args.string_formats,
         document: args.document,
       }))
@@ -171,10 +203,13 @@ See `format_path_item_as_server_endpoint_handlers`.
  */
 function format_path_item_setup_server_router(
   paths: { [path: string]: PathItem },
+  gensym: (hint?: string) => string,
 ): CodeFragment[] {
   const fragments: CodeFragment[] = []
 
-  fragments.push(cf`export function setup_router(handlers: `)
+  const handler_args_var = gensym('handlers')
+
+  fragments.push(cf`export function setup_router(${handler_args_var}: `)
 
   fragments.push(...object_to_type(
     Object.entries(paths).map(([path, item]) => ({
@@ -190,8 +225,9 @@ function format_path_item_setup_server_router(
     }))))
 
   fragments.push(cf`): Router {\n`)
-  fragments.push(cf`const router = Router();\n`)
-  fragments.push(cf`router.use(express.raw({ type: '*/*' }));\n`)
+  const router_var = gensym('router')
+  fragments.push(cf`const ${router_var} = Router();\n`)
+  fragments.push(cf`${router_var}.use(express.raw({ type: '*/*' }));\n`)
 
   for (const [path, item] of Object.entries(paths)) {
     for (const op of operations) {
@@ -201,12 +237,12 @@ function format_path_item_setup_server_router(
         const [fixed_path, _] = parse_uri_path(path, s => `:${s}`)
 
         fragments.push(
-          cf`router.${op}(${fixed_path}, handle_${opid}(handlers[${ts_string(path)}].${op}));\n`)
+          cf`${router_var}.${op}(${fixed_path}, handle_${opid}(${handler_args_var}[${ts_string(path)}].${op}));\n`)
       }
     }
   }
 
-  fragments.push(cf`return router;\n`)
+  fragments.push(cf`return ${router_var};\n`)
   fragments.push(cf`}`) /* end router function */
 
   return fragments

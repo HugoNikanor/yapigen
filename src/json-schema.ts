@@ -83,6 +83,11 @@ Note that this does *not* include the name
 ```typescript
 `type ${get_name(schema)} = ${schema_to_typescript(schema)}`
 ```
+
+@param ns
+Prefix to add to all type symbols. When declaring the symbols, this
+should be ''. When using the symbols imported though a symbol, this
+should be `${library_symbol}.`
  */
 function schema_to_typescript(
   schema: Reference | Schema | boolean,

@@ -42,6 +42,12 @@ Should most likely by `content_type`.
 @param args.document
 Base OpenAPI specification worked with. Used to resolve references.
 
+@param args.generator_common_symbol
+Symbol which the common generated library is imported under.
+
+@param args.types_symbol
+symbol which the generated types is imported under.
+
 @returns
 A TypeScript fragment suitable for pasting into a switch stament.
 This means that it's either "nothing", or something beginning with
@@ -53,6 +59,10 @@ function format_response(args: {
   response_object: string,
   content_type_return_name: string,
   security: SecurityRequirement[],
+  generator_common_symbol: string,
+  types_symbol: string,
+
+  gensym: (hint?: string) => string,
   string_formats: { [format: string]: FormatSpec },
   document: OpenAPISpec,
 }): CodeFragment[] {
@@ -81,6 +91,7 @@ function format_response(args: {
     const headers_type = object_to_type(headers
       .map((header) => format_parameter(
         { ...resolve(header, args.document), in: 'header' },
+        args.types_symbol,
         args.string_formats,
         args.document,
       )).filter(x => x !== null))
@@ -88,21 +99,32 @@ function format_response(args: {
     const groups = headers.groupBy(h => h.required ?? false)
 
     /* Declare a struct of return headers */
-    let return_s: CodeFragment[] = [cf`const headers: `, ...headers_type, cf` = {`]
+    const headers_var = args.gensym('headers')
+    let return_s: CodeFragment[] = [cf`const ${headers_var}: `, ...headers_type, cf` = {`]
     for (const header of groups.get(true /* required headers */) ?? []) {
       const key = ts_string(header.name)
+      const header_var = args.gensym('header')
       return_s.push(
         cf`${key}:`,
 
         cf`(() => {
-const header = ${args.response_object}.headers.get(${ts_string(header.name)});`,
+        const ${header_var} = ${args.response_object}.headers.get(${ts_string(header.name)});`,
 
-        cf`if (! header) { throw new InvalidData('header', `,
+        cf`if (! ${header_var}) { throw new InvalidData('header', `,
         new CodeFragment(ts_string(`Required header "${header.name}" absent from response.`)),
         cf`);}\n`,
 
         cf`return `,
-        ...unpack_parameter_expression('header', header, args.string_formats, args.document),
+        ...unpack_parameter_expression({
+          header_field: header_var,
+          header: header,
+          generator_common_symbol: args.generator_common_symbol,
+
+          gensym: args.gensym,
+          string_formats: args.string_formats,
+          document: args.document,
+        }
+        ),
         cf`;\n`,
         cf`}) ()`,
 
@@ -112,30 +134,40 @@ const header = ${args.response_object}.headers.get(${ts_string(header.name)});`,
 
     for (const header of groups.get(false /* optional headers */) ?? []) {
       const key = ts_string(header.name)
+      const header_var = args.gensym('header')
       return_s.push(cf`{
-        const header = ${args.response_object}.headers.get(${key})
-            if (header) {
-        headers[${key}] = `,
-        ...unpack_parameter_expression('header', header, args.string_formats, args.document),
+      const ${header_var} = ${args.response_object}.headers.get(${key})
+      if (${header_var}) {
+        ${headers_var}[${key}] = `,
+        ...unpack_parameter_expression({
+          header_field: header_var,
+          header: header,
+          generator_common_symbol: args.generator_common_symbol,
+
+          gensym: args.gensym,
+          string_formats: args.string_formats,
+          document: args.document,
+        }),
         cf`}}`)
     }
 
     frags.push(...return_s)
 
-    response.set('headers', [cf`headers`])
+    response.set('headers', [cf`${headers_var}`])
   }
 
+  const content_type_var = args.gensym('content_type')
   if ('content' in args.response) {
     frags.push(
       /* parse_content_type defined in the preamble file. */
-      cf`const [content_type, _] = parse_content_type(${args.response_object}.headers.get('Content-Type'));\n`,
+      cf`const [${content_type_var}, _] = parse_content_type(${args.response_object}.headers.get('Content-Type'));\n`,
       /*
       TODO handle the `encoding` parameter. Currently, we assume that
       all recieved data is in the "correct" encoding (which should be
       UTF-8 as long as neither system is stupid, so this should just
       work™).
        */
-      cf`switch (content_type) {\n`)
+      cf`switch (${content_type_var}) {\n`)
     for (const [mimetype, media] of Object.entries(args.response.content!)) {
       frags.push(cf`case ${ts_string(mimetype)}: {\n`)
       response.set(
@@ -143,35 +175,37 @@ const header = ${args.response_object}.headers.get(${ts_string(header.name)});`,
         [new CodeFragment(ts_string(mimetype))])
 
       if (mimetype === 'application/json') {
-        frags.push(cf`const body = await ${args.response_object}.json(); \n`)
+        const body_var = args.gensym('body')
+        frags.push(cf`const ${body_var} = await ${args.response_object}.json(); \n`)
         if ('schema' in media) {
           response.set('body', validate_and_parse_body({
             schema: media.schema!,
-            body_var: 'body',
+            body_var: body_var,
+            gensym: args.gensym,
             string_formats: args.string_formats,
             document: args.document,
           }))
 
         } else {
-          response.set('body', [cf`body`])
+          response.set('body', [cf`${body_var}`])
         }
 
       } else if (mimetype === 'text/plain') {
         response.set('body', [cf`await ${args.response_object}.text()`])
 
       } else if (mimetype === 'application/binary') {
-        response.set(args.content_type_return_name, [cf`content_type`])
+        // response.set(args.content_type_return_name, [cf`content_type`])
         response.set('body', [cf`await ${args.response_object}.arrayBuffer()`])
 
       } else {
-        response.set(args.content_type_return_name, [cf`content_type`])
+        response.set(args.content_type_return_name, [cf`${content_type_var}`])
         response.set('body', [cf`await ${args.response_object}.arrayBuffer()`])
       }
       frags.push(cf`return `, ...map_to_ts_object([...response]), cf`;`)
       frags.push(cf`};\n`) // end case
     }
     frags.push(new CodeFragment(
-      'default: throw new UnknownContentType(`Unknown Content Type: ${content_type}`)'))
+      `default: throw new UnknownContentType("Unknown Content Type: " + ${content_type_var})`))
     frags.push(cf`}\n`) // end switch mimetype
 
   } else {

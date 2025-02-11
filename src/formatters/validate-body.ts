@@ -39,6 +39,7 @@ evaluated multiple times.
 function validate_and_parse_body(args: {
   schema: Schema | Reference,
   body_var: string,
+  gensym: (hint?: string) => string,
   string_formats: { [format: string]: FormatSpec },
   document: OpenAPISpec,
 }): CodeFragment[] {
@@ -53,6 +54,7 @@ function validate_and_parse_body(args: {
 
   } else {
     const schema = resolve(args.schema, args.document)
+    // TODO get `validators` module symbol from somewhere
     validator = cf`validators.validate_type(${args.body_var}, ${JSON.stringify(
       change_refs(schema as any),
       (k, v) => {
@@ -69,7 +71,7 @@ function validate_and_parse_body(args: {
     )});\n`
   }
 
-  const validated_body_var = 'validated_body'
+  const validated_body_var = args.gensym('validated_body')
 
   const parser = schema_to_parser(
     args.schema,

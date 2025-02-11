@@ -106,6 +106,12 @@ these. Moving them from exceptions to "negative" return values would
 force all clients to actually check for these.
 
 TODO example.
+
+@param args.generator_common_symbol
+Symbol which the common generated library is imported under.
+
+@param args.types_symbol
+symbol which the generated types is imported under.
  */
 function format_operation_api_call(args: {
   op: Unlist<typeof operations>,
@@ -114,9 +120,16 @@ function format_operation_api_call(args: {
   shared_parameters: Parameter[],
   parameters_object: string,
   default_security: SecurityRequirement[],
+  generator_common_symbol: string,
+  types_symbol: string,
+
+  gensym: (hint?: string) => string,
   string_formats: { [format: string]: FormatSpec },
   document: OpenAPISpec,
 }): CodeFragment[] {
+
+  /* Name of argument dictionary to generated function */
+  const f_args = args.gensym('args')
 
   const security = args.operation.security ?? args.default_security
 
@@ -149,11 +162,11 @@ function format_operation_api_call(args: {
       { name: 'login_headers', type: [cf`Record<string, string>`], optional: true },
     )
 
-    request_args.set('save_refresh', [cf`args.save_refresh`])
-    request_args.set('account', [cf`args.account`])
-    request_args.set('authenticator', [cf`args.authenticator`])
+    request_args.set('save_refresh', [cf`${f_args}.save_refresh`])
+    request_args.set('account', [cf`${f_args}.account`])
+    request_args.set('authenticator', [cf`${f_args}.authenticator`])
 
-    request_args.set('login_headers', [cf`{...args.login_headers ?? {}}`])
+    request_args.set('login_headers', [cf`{...${f_args}.login_headers ?? {}}`])
   } else {
     /* For authorized calls, we get the server from the account.
     But since we don't have an account, we need to pass the server manually.
@@ -183,13 +196,14 @@ function format_operation_api_call(args: {
 
     request_header_parts.push(
       request_body.required
-        ? cf`{ "Content-Type": args.body["content-type"] }`
-        : cf`...(args.body ? { "Content-Type": args.body["content-type"] } : {})`)
+        ? cf`{ "Content-Type": ${f_args}.body["content-type"] }`
+        : cf`...(${f_args}.body ? { "Content-Type": ${f_args}.body["content-type"] } : {})`)
 
     for (const body_case of handle_request_body({
       bodies: request_body.content,
       body_required: request_body.required === true,
-      source_param: 'args.body.body',
+      source_param: `${f_args}.body.body`,
+      types_symbol: args.types_symbol,
       string_formats: args.string_formats,
       document: args.document
     })) {
@@ -219,7 +233,7 @@ function format_operation_api_call(args: {
     })
 
     const body_proper: CodeFragment[] = [cf`(() => {
-    switch (args.body["content-type"]) {`,
+    switch (${f_args}.body["content-type"]) {`,
     ...body_cases.flatMap((c) => [...c, cf`\n`]),
     cf`
         default:
@@ -228,7 +242,7 @@ function format_operation_api_call(args: {
 
     request_args.set('body',
       [
-        (request_body.required ? cf`` : cf`args.body === undefined ? undefined : `),
+        (request_body.required ? cf`` : cf`${f_args}.body === undefined ? undefined : `),
         ...body_proper,
       ])
   }
@@ -245,7 +259,7 @@ function format_operation_api_call(args: {
   // all_parameters.filter(p => p.in === 'path').map(p => p.name)
 
   for (const parameter of all_parameters) {
-    const type = format_parameter(parameter, args.string_formats, args.document)
+    const type = format_parameter(parameter, args.types_symbol, args.string_formats, args.document)
 
     if (!type) continue
 
@@ -259,7 +273,7 @@ function format_operation_api_call(args: {
   const return_type = join_fragments(cf` | `, responses
     .map(([status, response]) => get_return_type(
       status, response, security,
-      args.string_formats, args.document)
+      args.types_symbol, args.string_formats, args.document)
     )
     .filter(x => x !== null))
 
@@ -275,7 +289,7 @@ function format_operation_api_call(args: {
 
   frags.push(
     cf`export async function ${args.operation.operationId}`,
-    cf`(args: `, ...object_to_type(function_args), cf`)`,
+    cf`(${f_args}: `, ...object_to_type(function_args), cf`)`,
     cf`: Promise<`, ...return_type, cf`>`,
     cf`{\n`)
 
@@ -288,27 +302,30 @@ function format_operation_api_call(args: {
     frags.push(
       cf`const ${args.parameters_object} = `,
       ...params_to_object(
-        'args.params',
-        path_parameters, args.string_formats, args.document
+        `${f_args}.params`, path_parameters,
+        args.gensym, args.string_formats, args.document
       ),
       cf`;`)
   }
 
 
   const query_parameters = groups.get('query')
+  const query_parameters_var = args.gensym('query_parameters')
   if (query_parameters) {
-    frags.push(cf`const query_parameters = new URLSearchParams;`)
+    frags.push(cf`const ${query_parameters_var} = new URLSearchParams;`)
 
     for (const parameter of query_parameters.values()) {
       const key = ts_string(parameter.name)
       if (!parameter.required)
-        frags.push(cf`if (${key} in args.params) {`)
+        frags.push(cf`if (${key} in ${f_args}.params) {`)
 
+      const pair_var = args.gensym('pair')
       frags.push(
-        cf`for (const pair of `,
-        ...pack_parameter_expression('args.params', parameter, args.string_formats, args.document),
+        cf`for (const ${pair_var} of `,
+        ...pack_parameter_expression(`${f_args}.params`, parameter,
+          args.gensym, args.string_formats, args.document),
         cf` as [string, string][]) {
-            query_parameters.append(pair[0], pair[1])
+            ${query_parameters_var}.append(${pair_var}[0], ${pair_var}[1])
         }`)
 
       if (!parameter.required)
@@ -342,27 +359,32 @@ function format_operation_api_call(args: {
     The solution is to reword `params_to_object` (and probably
     `pack_parameter_expression`).
      */
+    const header_parameters_var = args.gensym('header_parameters')
     frags.push(
-      cf`const header_parameters: `, ...header_parameters_type, cf` = `,
-      ...params_to_object('args.params', groups.get(true) ?? [], args.string_formats, args.document),
+      cf`const ${header_parameters_var}: `, ...header_parameters_type, cf` = `,
+      ...params_to_object(`${f_args}.params`, groups.get(true) ?? [],
+        args.gensym, args.string_formats, args.document),
       cf` as any;\n`
     )
 
     for (const parameter of groups.get(false) ?? []) {
       const key = ts_string(parameter.name)
-      frags.push(cf`if (${key} in args.params) {`)
+      frags.push(cf`if (${key} in ${f_args}.params) {`)
       /* TODO this assumes that no header parameter explodes into multiple headers.
       This is NOT correct, and should be fixed in the future.
        */
+      const key_var = args.gensym('key')
+      const value_var = args.gensym('value')
       frags.push(
-        cf`const [[key, value]] = `,
-        ...pack_parameter_expression('args.params', parameter, args.string_formats, args.document),
+        cf`const [[${key_var}, ${value_var}]] = `,
+        ...pack_parameter_expression(`${f_args}.params`, parameter,
+          args.gensym, args.string_formats, args.document),
         cf`;
-      (header_parameters as any)[key] = value;`)
+      (${header_parameters_var} as any)[${key_var}] = ${value_var};`)
       frags.push(cf`}`)
     }
 
-    request_header_parts.push(cf`header_parameters`)
+    request_header_parts.push(cf`${header_parameters_var}`)
   }
 
   /* error on cookie parameters. */
@@ -370,10 +392,10 @@ function format_operation_api_call(args: {
     request_args.set('request_credentials', [cf`"include"`])
   }
 
-  const response_object = 'response'
+  const response_object = args.gensym('response')
 
   /* We do this really late, to ensure args.headers ALWAYS is last in the merged structure */
-  request_header_parts.push(cf`args.headers`)
+  request_header_parts.push(cf`${f_args}.headers`)
   if (request_header_parts.length === 1) {
     request_args.set('headers', [request_header_parts[0]!])
   } else {
@@ -390,11 +412,13 @@ function format_operation_api_call(args: {
         ? build_query_string({
           path_template: args.path_template,
           include_query_parameters: query_parameters !== undefined,
+          query_parameters_var: query_parameters_var,
         })
         : build_query_string({
           path_template: args.path_template,
           include_query_parameters: query_parameters !== undefined,
-          prefix: 'args.server',
+          query_parameters_var: query_parameters_var,
+          prefix: `${f_args}.server`,
         })
       ,
       map_to_ts_object([...request_args])),
@@ -402,13 +426,13 @@ function format_operation_api_call(args: {
 
   if (authenticated_endpoint) {
     frags.push(cf`
-  if ('errtype' in response) {
-    throw new InternalRequestError({
-      msg: response.msg,
-      errtype: response.errtype,
-      from: response.from,
-    })
-  }\n`)
+    if ('errtype' in ${response_object}) {
+        throw new InternalRequestError({
+            msg: ${response_object}.msg,
+            errtype: ${response_object}.errtype,
+            from: ${response_object}.from,
+        })
+    }\n`)
   }
 
   frags.push(...generate_switch(
@@ -422,11 +446,18 @@ function format_operation_api_call(args: {
         document: args.document,
         response_object: response_object,
         security: security,
+        generator_common_symbol: args.generator_common_symbol,
+        types_symbol: args.types_symbol,
+
+        gensym: args.gensym,
         string_formats: args.string_formats,
+        // TODO where does this comes from?
         content_type_return_name: 'content_type',
       })
     }).concat([
-      new CodeFragment('default: throw new UnknownStatusCode(`Unknown HTTP status code: ${ response.status } `)\n')
+      new CodeFragment(
+        `default:
+        throw new UnknownStatusCode("Unknown HTTP status code: " + ${response_object}.status)\n`)
     ])))
 
   frags.push(cf`}`) /* end function declaration */
@@ -440,26 +471,39 @@ function format_operation_api_call(args: {
 Format an operation object into a TypeScript fragment containing a
 function declaration, whhich takes a user supplied "handler", and
 returns an endpoint handler in the express.js meaning.
+
+@param args.generator_common_symbol
+Symbol which the common generated library is imported under.
+
+@param args.types_symbol
+symbol which the generated types is imported under.
  */
 function format_operation_as_server_endpoint_handler(args: {
   operation: Operation,
   shared_parameters: Parameter[],
+  generator_common_symbol: string,
+  types_symbol: string,
+
   gensym: (hint?: string) => string,
   string_formats: { [format: string]: FormatSpec },
   // format_bad_request: FormatBadRequest,
   document: OpenAPISpec,
 }): CodeFragment[] {
   const fragments: CodeFragment[] = [];
+  const req_var = args.gensym('req')
+  const res_var = args.gensym('res')
+  const handler_parameter_var = args.gensym('handler')
+  const handler_args_var = args.gensym('handler_args')
   fragments.push(cf`
   function handle_${args.operation.operationId}(
-    handler: handler_types.${args.operation.operationId},
+    ${handler_parameter_var}: handler_types.${args.operation.operationId},
   ): (req: Request, res: Response) => Promise<void> {
-    return async (req, res) => {`)
+    return async (${req_var}, ${res_var}) => {`)
 
   const local_parameters = (args.operation.parameters ?? []).map(x => resolve(x, args.document))
   const all_parameters = args.shared_parameters.concat(local_parameters)
 
-  fragments.push(cf`const handler_args: Partial<Parameters<handler_types.${args.operation.operationId}>[0]> = {};\n`)
+  fragments.push(cf`const ${handler_args_var}: Partial<Parameters<handler_types.${args.operation.operationId}>[0]> = {};\n`)
 
   for (const parameter of all_parameters) {
 
@@ -468,16 +512,16 @@ function format_operation_as_server_endpoint_handler(args: {
     /* Retrieve parameter */
     switch (parameter.in) {
       case 'path':
-        fragments.push(cf`const ${name} = req.params[${ts_string(parameter.name)}];\n`)
+        fragments.push(cf`const ${name} = ${req_var}.params[${ts_string(parameter.name)}];\n`)
         break
       case 'query':
-        fragments.push(cf`const ${name} = req.query[${ts_string(parameter.name)}];\n`)
+        fragments.push(cf`const ${name} = ${req_var}.query[${ts_string(parameter.name)}];\n`)
         break
       case 'header':
-        fragments.push(cf`const ${name} = req.get(${ts_string(parameter.name)});\n`)
+        fragments.push(cf`const ${name} = ${req_var}.get(${ts_string(parameter.name)});\n`)
         break
       case 'cookie':
-        fragments.push(cf`const ${name} = req.cookies[${ts_string(parameter.name)}];\n`)
+        fragments.push(cf`const ${name} = ${req_var}.cookies[${ts_string(parameter.name)}];\n`)
         break
       default:
         assertUnreachable(parameter)
@@ -486,8 +530,8 @@ function format_operation_as_server_endpoint_handler(args: {
     /* if required and missing, return error */
     if (parameter.required) {
       fragments.push(cf`if (${name} === undefined) {\n`)
-      fragments.push(cf`res.status(400);\n`)
-      fragments.push(cf`res.format(`)
+      fragments.push(cf`${res_var}.status(400);\n`)
+      fragments.push(cf`${res_var}.format(`)
       fragments.push(...map_to_ts_object([
         // TODO TODO TODO
         // The user (of the generator) should be able to insert formats here.
@@ -495,7 +539,7 @@ function format_operation_as_server_endpoint_handler(args: {
         [
           'default',
           [cf`() => {
-          res.type('text').send(
+          ${res_var}.type('text').send(
           'Required parameter "' + ${JSON.stringify(parameter.name)} + '" absent from request.'
           )
           }`]
@@ -516,7 +560,7 @@ function format_operation_as_server_endpoint_handler(args: {
 
       // TODO TODO TODO make error customizable
       fragments.push(cf`if (typeof ${name} !== 'string') {
-        res
+        ${res_var}
           .status(400)
           .type('text')
           .send(
@@ -534,21 +578,29 @@ function format_operation_as_server_endpoint_handler(args: {
     fragments.push(
       cf`try {
         \n`,
-      cf`handler_args[${ts_string(parameter.name)}] = `,
-      ...unpack_parameter_expression(name, parameter, args.string_formats, args.document),
+      cf`${handler_args_var}[${ts_string(parameter.name)}] = `,
+      ...unpack_parameter_expression({
+        header_field: name,
+        header: parameter,
+        generator_common_symbol: args.generator_common_symbol,
+
+        gensym: args.gensym,
+        string_formats: args.string_formats,
+        document: args.document,
+      }),
       cf`; \n`,
       cf`} catch (e: unknown) {
         if (!(e instanceof Error)) {
           throw e
         }
         if (e.name === 'SyntaxError') {
-          res.status(400)
+          ${res_var}.status(400)
             .type('text')
             .send('Failed parsing body\\n' + e.message)
           return
         }
         if (e.name === 'InvalidData') {
-          res.status(400)
+          ${res_var}.status(400)
             .type('text')
             .send(\`Invalid object in \${(e as any).location}\\n\${(e as any).message}\`)
           return
@@ -564,6 +616,10 @@ function format_operation_as_server_endpoint_handler(args: {
   if ('requestBody' in args.operation) {
     fragments.push(...handle_request_body_payload({
       body: resolve(args.operation.requestBody!, args.document),
+      req_var: req_var,
+      res_var: res_var,
+      handler_args_var: handler_args_var,
+      gensym: args.gensym,
       document: args.document,
       string_formats: args.string_formats,
     }))
@@ -577,16 +633,17 @@ function format_operation_as_server_endpoint_handler(args: {
   have a complete type otherwise. This must be accompanied with proper
   testing of the generator (and the generated code), to ensure we
   always have a complete set of arguments. */
-  fragments.push(cf`const result = await handler(
-    handler_args as any,
-    req
+  const result_var = args.gensym('result')
+  fragments.push(cf`const ${result_var} = await ${handler_parameter_var}(
+    ${handler_args_var} as any,
+    ${req_var}
   );\n`)
 
   /* Start packing response */
 
-  fragments.push(cf`res.status(result.status);\n`)
+  fragments.push(cf`${res_var}.status(${result_var}.status);\n`)
 
-  fragments.push(cf`switch (result.status) {\n`)
+  fragments.push(cf`switch (${result_var}.status) {\n`)
   for (const [status, response_] of Object.entries(args.operation.responses)) {
     const response = resolve(response_, args.document);
     fragments.push(cf`case ${status}:\n`);
@@ -597,19 +654,25 @@ function format_operation_as_server_endpoint_handler(args: {
 
         fragments.push(cf`{`)
 
-        fragments.push(cf`const header = result[${ts_string(header)}];\n`)
+        const header_var = args.gensym('header')
+        fragments.push(cf`const ${header_var} = ${result_var}[${ts_string(header)}];\n`)
 
 
         if (!type.required) {
-          fragments.push(cf`if (header !== undefined) {\n`)
+          fragments.push(cf`if (${header_var} !== undefined) {\n`)
         }
 
-        fragments.push(
-          cf`for (const pair of `,
-          ...pack_parameter_expression('result', { ...type, in: 'header', name: header }, args.string_formats, args.document),
-          cf` as [string, string][]) {
-            res.append(pair[0], pair[1])
+        {
+          const pair_var = args.gensym('pair')
+          fragments.push(
+            cf`for (const ${pair_var} of `,
+            ...pack_parameter_expression(
+              result_var, { ...type, in: 'header', name: header },
+              args.gensym, args.string_formats, args.document),
+            cf` as [string, string][]) {
+            ${res_var}.append(${pair_var}[0], ${pair_var}[1])
         }`)
+        }
 
         if (!type.required) {
           fragments.push(cf`}`) /* end if (header !== undefined) */
@@ -623,10 +686,13 @@ function format_operation_as_server_endpoint_handler(args: {
 
       const cases: [string, CodeFragment[]][] = []
 
+      const body_var = args.gensym('body')
+
       for (const alternative of handle_request_body({
         bodies: response.content!,
         body_required: true,
-        source_param: 'body',
+        source_param: body_var,
+        types_symbol: args.types_symbol,
         string_formats: args.string_formats,
         document: args.document,
       })) {
@@ -635,12 +701,12 @@ function format_operation_as_server_endpoint_handler(args: {
           alternative.content_type,
           [
             cf`() => {\n`,
-            cf`const body = result[${ctype}]();\n`,
+            cf`const ${body_var} = ${result_var}[${ctype}]();\n`,
             // NOTE `Result.format` automatically adds the content
             // type header which matched. This means we can skip doing
             // it explicitly.
             // cf`res.type(${ctype});\n`,
-            cf`res.send(`, ...alternative.pack_expression, cf`);\n`,
+            cf`${res_var}.send(`, ...alternative.pack_expression, cf`);\n`,
             cf`}`,
           ]
         ])
@@ -648,12 +714,12 @@ function format_operation_as_server_endpoint_handler(args: {
 
 
       fragments.push(
-        cf`res.format(`,
+        cf`${res_var}.format(`,
         ...map_to_ts_object(
           [...cases, [
             'default',
             [cf`() => {
-                res
+                ${res_var}
                 .status(406 /* Not Acceptable */)
                 .type('text')
                 .send('Not Acceptable')
@@ -663,7 +729,7 @@ function format_operation_as_server_endpoint_handler(args: {
       )
     } else {
       /* No content in response */
-      fragments.push(cf`res.send();\n`)
+      fragments.push(cf`${res_var}.send();\n`)
     }
 
     /* return at end of each case */
@@ -702,10 +768,14 @@ Each return value specifies the status code, all response headers as
 keys, and finally each possible body type. Bodies are defered (by
 wrapping them in functions). This is so only the type choosen by the
 content type negotiation is actually renedered.
+
+@param args.types_symbol
+Symbol the generated type library is imported under.
  */
 function format_operation_as_server_endpoint_handler_type(args: {
   operation: Operation,
   shared_parameters: Parameter[],
+  types_symbol: string,
   string_formats: { [format: string]: FormatSpec },
   document: OpenAPISpec,
 }): CodeFragment[] {
@@ -721,7 +791,7 @@ function format_operation_as_server_endpoint_handler_type(args: {
 
   const common_function_parameters: ObjectField[] = []
   for (const parameter of all_parameters) {
-    const type = format_parameter(parameter, args.string_formats, args.document)
+    const type = format_parameter(parameter, args.types_symbol, args.string_formats, args.document)
     if (!type) continue
     common_function_parameters.push(type)
   }
@@ -735,7 +805,8 @@ function format_operation_as_server_endpoint_handler_type(args: {
     for (const alt of handle_request_body({
       bodies: request_body.content,
       body_required: request_body.required === true,
-      source_param: 'args.body.body', // TODO where does this come from?
+      types_symbol: args.types_symbol,
+      source_param: 'args.body.body /* TODO */', // TODO where does this come from?
       string_formats: args.string_formats,
       document: args.document,
     })
@@ -757,7 +828,7 @@ function format_operation_as_server_endpoint_handler_type(args: {
 
   for (const [status, response_] of Object.entries(args.operation.responses)) {
     if (status === 'default') {
-      console.warn('`default ` response not implemented, ignoring')
+      console.warn('`default` response not implemented, ignoring')
       continue
     }
 
@@ -779,7 +850,7 @@ function format_operation_as_server_endpoint_handler_type(args: {
         .map(([name, type]) =>
           format_parameter(
             { ...resolve(type, args.document), name: name, in: 'header' },
-            args.string_formats, args.document))
+            args.types_symbol, args.string_formats, args.document))
         .filter(x => x !== null))
     }
 
@@ -810,7 +881,7 @@ function format_operation_as_server_endpoint_handler_type(args: {
                 name: content_type,
                 type: [cf`() => `, ...schema_to_typescript(
                   resolve(media.schema!, args.document),
-                  'types.',
+                  `${args.types_symbol}.`,
                   args.string_formats,
                   args.document)
                 ],
@@ -869,6 +940,7 @@ actually check it during runtime.
  */
 function return_body_type(
   content: { [k: string]: MediaType },
+  types_symbol: string,
   string_formats: { [format: string]: FormatSpec },
   document: OpenAPISpec,
 ): ({
@@ -889,7 +961,7 @@ function return_body_type(
         return {
           content_type: ts_string('application/json'),
           body_type: schema_to_typescript(
-            body.schema!, 'types.', string_formats, document),
+            body.schema!, `${types_symbol}.`, string_formats, document),
         }
 
       default:
@@ -910,11 +982,15 @@ The result will be a tuple, containing
 - the HTTP status codes as a literal
 - a body field if request returns a body
 - a header fields if request specifies any headers
+
+@param types_symbol
+Symbol the generated type library is imported under.
  */
 function get_return_type(
   status: string,
   response_: Reference | Response,
   security: SecurityRequirement[],
+  types_symbol: string,
   string_formats: { [format: string]: FormatSpec },
   document: OpenAPISpec,
 ): CodeFragment[] | null {
@@ -939,7 +1015,8 @@ const responseType: Record<string, string> = {
    */
 
   if ('content' in response) {
-    const body = return_body_type(response.content!, string_formats, document)
+    const body = return_body_type(
+      response.content!, types_symbol, string_formats, document)
 
     if (body.length > 0) {
       for (const entry of body) {
@@ -961,6 +1038,7 @@ const responseType: Record<string, string> = {
     const header_type = object_to_type(Object.entries(response.headers!)
       .map(([name, spec]) => format_parameter(
         { ...resolve(spec, document), name: name, in: 'header' },
+        types_symbol,
         string_formats, document,
       )).filter(x => x !== null))
 
@@ -1003,6 +1081,9 @@ TypeScript expression evaluating to the parsed form of the body.
 @param args.string_formats
 @param agrs.document
 
+@param args.types_symbol
+Symbol which the generated types library is imported under.
+
 @return
 A list of structures, containing
 - content_type: The content type string for the case (not escaped)
@@ -1014,6 +1095,7 @@ A list of structures, containing
 function handle_request_body(args: {
   bodies: { [content_type: string]: MediaType },
   body_required: boolean,
+  types_symbol: string,
   source_param: string,
   string_formats: { [format: string]: FormatSpec },
   document: OpenAPISpec,
@@ -1063,7 +1145,7 @@ function handle_request_body(args: {
     let type: CodeFragment[]
     if (schema_) {
       type = schema_to_typescript(
-        schema_, 'types.', args.string_formats, args.document)
+        schema_, `${args.types_symbol}.`, args.string_formats, args.document)
     } else {
       switch (content_type) {
         case 'text/plain':
@@ -1107,6 +1189,7 @@ function handle_request_body(args: {
 function build_query_string(args: {
   path_template: string,
   include_query_parameters: boolean,
+  query_parameters_var: string,
   prefix?: string,
 }): CodeFragment[] {
 
@@ -1119,7 +1202,7 @@ function build_query_string(args: {
   }
 
   if (args.include_query_parameters) {
-    s += '+ "?" + query_parameters.toString()'
+    s += `+ "?" + ${args.query_parameters_var}.toString()`
   }
 
   return [new CodeFragment(s)]
@@ -1129,11 +1212,12 @@ function build_query_string(args: {
 function params_to_object(
   param_object: string,
   parameters: Parameter[],
+  gensym: (hint?: string) => string,
   string_formats: { [format: string]: FormatSpec },
   document: OpenAPISpec
 ): CodeFragment[] {
   const many_lists = parameters.map(
-    p => pack_parameter_expression(param_object, p, string_formats, document))
+    p => pack_parameter_expression(param_object, p, gensym, string_formats, document))
 
   return [
     cf`Object.fromEntries([`,
@@ -1212,12 +1296,16 @@ function match_content_type<T>(
 
 function handle_request_body_payload(args: {
   body: RequestBody
+  req_var: string,
+  res_var: string,
+  handler_args_var: string,
+  gensym: (hint?: string) => string,
   string_formats: { [format: string]: FormatSpec },
   document: OpenAPISpec,
 }): CodeFragment[] {
   const fragments: CodeFragment[] = []
-
   // TODO body is `undefined` if no body is present.
+
   //      do stuff depending on if body is required
   if (!args.body.required) {
     throw new Error('Not implemented: Optional request bodies')
@@ -1225,16 +1313,17 @@ function handle_request_body_payload(args: {
 
   // TODO All error responses should be configurable
 
-  fragments.push(cf`const raw_body = req.body; \n`)
-  fragments.push(cf`if (raw_body === undefined) {
-      res
+  const raw_body_var = args.gensym('raw_body')
+  fragments.push(cf`const ${raw_body_var} = ${args.req_var}.body; \n`)
+  fragments.push(cf`if (${raw_body_var} === undefined) {
+      ${args.res_var}
         .status(400)
         .type('text')
         .send('Body required, but non provided')
     }`)
 
   fragments.push(cf`
-    if (!(raw_body instanceof Buffer)) {
+    if (!(${raw_body_var} instanceof Buffer)) {
       throw new Error("Request body not a buffer object. This means that the server is misconfigured for the generated code. See documentation for the generator.")
     }
     `)
@@ -1242,7 +1331,7 @@ function handle_request_body_payload(args: {
 
   // NOTE wildcard types MUST come after specific types. Possibly sort that here.
   for (const [content_type, content_info] of Object.entries(args.body.content)) {
-    fragments.push(cf`if (req.is(${ts_string(content_type)})) {\n`)
+    fragments.push(cf`if (${args.req_var}.is(${ts_string(content_type)})) {\n`)
 
     // TODO support other character encodings
     // https://developer.mozilla.org/en-US/docs/Web/API/Encoding_API/Encodings
@@ -1250,17 +1339,18 @@ function handle_request_body_payload(args: {
     // TODO TODO TODO for all of these, send 400 responses as defined by the schema
     fragments.push(...match_content_type(content_type, [
       [['text', '*'], () => {
+        const decoder_var = args.gensym('decoder')
         return [cf`
-      const decoder = new TextDecoder('utf8', { fatal: true });
+      const ${decoder_var} = new TextDecoder('utf8', { fatal: true });
       try {
-        handler_args.body = decoder.decode(raw_body);
-        handler_args.content_type = 'text/plain';
+        ${args.handler_args_var}.body = ${decoder_var}.decode(${raw_body_var});
+        ${args.handler_args_var}.content_type = 'text/plain';
       } catch (e: unknown) {
         if (!(e instanceof Error)) {
           throw e
         }
         if (e instanceof TypeError && (e as any).code === 'ERR_ENCODING_INVALID_DATA') {
-          res.status(400)
+          ${args.res_var}.status(400)
             .type('text')
             .send('Request body not in specified character encoding (utf-8).')
           return
@@ -1275,49 +1365,50 @@ function handle_request_body_payload(args: {
       ], (content_type) => {
         const structured_body = 'structured_body'
         const fragments: CodeFragment[] = []
+        const decoder_var = args.gensym('decoder')
         fragments.push(cf`
-      const decoder = new TextDecoder('utf8', { fatal: true });
+      const ${decoder_var} = new TextDecoder('utf8', { fatal: true });
       try {
-        const body_string = decoder.decode(raw_body);
         const ${structured_body} = ${content_type[1] === 'json'
             ? 'JSON.parse'
             : 'qs.parse'
-          }(body_string); \n`)
+          }(${decoder_var}.decode(${raw_body_var})); \n`)
 
         if ('schema' in content_info) {
           fragments.push(
-            cf`handler_args.body = `,
+            cf`${args.handler_args_var}.body = `,
             ...validate_and_parse_body({
               schema: content_info.schema!,
               body_var: structured_body,
-              document: args.document,
+              gensym: args.gensym,
               string_formats: args.string_formats,
+              document: args.document,
             }),
             cf`;\n`)
         } else {
-          fragments.push(cf`handler_args.body = ${structured_body}; \n`)
+          fragments.push(cf`${args.handler_args_var}.body = ${structured_body}; \n`)
         }
 
         fragments.push(cf`
-        handler_args.content_type = ${ts_string(content_type.join('/'))};
+        ${args.handler_args_var}.content_type = ${ts_string(content_type.join('/'))};
       } catch (e: unknown) {
         if (!(e instanceof Error)) {
           throw e
         }
         if (e.name === 'TypeError' && (e as any).code === 'ERR_ENCODING_INVALID_DATA') {
-          res.status(400)
+          ${args.res_var}.status(400)
             .type('text')
             .send('Request body not in specified character encoding (utf-8).')
           return
         }
         if (e.name === 'SyntaxError') {
-          res.status(400)
+          ${args.res_var}.status(400)
             .type('text')
             .send('Failed parsing body as ${content_type.join('/')}: ' + e.message)
           return
         }
         if (e.name === 'InvalidData') {
-          res.status(400)
+          ${args.res_var}.status(400)
             .type('text')
             .send(\`Invalid object in \${(e as any).location}\\n\${(e as any).message}\`)
           return
@@ -1332,13 +1423,13 @@ function handle_request_body_payload(args: {
         ['application', 'binary'],
         ['application', 'octet-stream'],
       ], (content_type) => [cf`
-        handler_args.body = raw_body
-        handler_args.content_type = ${ts_string(content_type.join('/'))};\n`
+        ${args.handler_args_var}.body = ${raw_body_var}
+        ${args.handler_args_var}.content_type = ${ts_string(content_type.join('/'))};\n`
       ]],
 
       [['*', '*'], () => [cf`
-        handler_args.body = raw_body
-        handler_args.content_type = req.get('Content-Type').split(';', 1);\n`
+        ${args.handler_args_var}.body = ${raw_body_var}
+        ${args.handler_args_var}.content_type = ${args.req_var}.get('Content-Type').split(';', 1);\n`
       ]],
     ])!)
 
@@ -1348,10 +1439,10 @@ function handle_request_body_payload(args: {
   /* else block */
   // TODO take error format from Spec
   fragments.push(cf`{
-      res
+      ${args.res_var}
         .status(415 /* Unsupported Media Type */)
         .type('text')
-        .send(\`Endpoint doesn't handle bodies of type '\${req.get('Content-Type')}'.\`)
+        .send(\`Endpoint doesn't handle bodies of type '\${${args.req_var}.get('Content-Type')}'.\`)
         return
     }`)
 

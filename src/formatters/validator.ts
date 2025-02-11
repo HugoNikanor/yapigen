@@ -26,6 +26,7 @@ function format_type_validator(
   schema: Schema,
   document: OpenAPISpec,
 ): CodeFragment[] {
+  // TODO take `validators` as argument
   return [cf`
   export function ${validator_function_name(name).split('.')[1]}(
     x: unknown

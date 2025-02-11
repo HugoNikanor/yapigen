@@ -17,7 +17,7 @@ export {
   unpack_parameter_expression,
 
   format_parameter,
-  format_parameter_type,
+  // format_parameter_type,
 }
 
 import type {
@@ -39,22 +39,27 @@ import { schema_to_typescript } from '../json-schema'
 Return a TypeScript fragment, which when evaluated, is the parsed form
 of a header. Note that the generated form may throw exceptions.
 
-@param header_field
+@param args.header_field
 TypeScript expression evaluating to the "raw" value of the
 header. This MUST evaluate to a string, meaning that a check for
 existance MUST be done beforehand.
 
-@param header
+@param args.header
 Specification of header object.
+
+@param args.generator_common_symbol
+Symbol which the common generated library is imported under.
  */
-function unpack_parameter_expression(
+function unpack_parameter_expression(args: {
   header_field: string,
   header: (Header | Parameter) & { name: string },
+  generator_common_symbol: string,
+  gensym: (hint?: string) => string,
   string_formats: { [format: string]: FormatSpec },
   document: OpenAPISpec,
-): CodeFragment[] {
+}): CodeFragment[] {
 
-  if ('x-isFlag' in header) {
+  if ('x-isFlag' in args.header) {
     /*
     Since this function must only be called when we know we have the
     value, the return value can only be true.
@@ -64,28 +69,28 @@ function unpack_parameter_expression(
     'query', so this is a non-situation.
     */
 
-    if (header.in !== 'query') {
+    if (args.header.in !== 'query') {
       throw new Error('x-isFlag can ONLY appear on query parameters\n'
-        + JSON.stringify(header, null, 2))
+        + JSON.stringify(args.header, null, 2))
     }
 
-    if (header.required) {
+    if (args.header.required) {
       throw new Error("x-isFlag can't be required\n"
-        + JSON.stringify(header, null, 2))
+        + JSON.stringify(args.header, null, 2))
     }
 
-    if (!header.allowEmptyValue) {
+    if (!args.header.allowEmptyValue) {
       throw new Error("x-isFlag must allow empty values\n"
-        + JSON.stringify(header, null, 2))
+        + JSON.stringify(args.header, null, 2))
     }
 
-    if ('schema' in header) {
-      console.warn('Schema ignored on x-isFlag parameter:', header)
+    if ('schema' in args.header) {
+      console.warn('Schema ignored on x-isFlag parameter:', args.header)
     }
 
     return [cf`true`]
-  } else if ('schema' in header) {
-    const schema = resolve(header.schema!, document)
+  } else if ('schema' in args.header) {
+    const schema = resolve(args.header.schema!, args.document)
 
     if (!('type' in schema) || !['integer', 'number', 'string'].includes(schema.type!)) {
       throw new NotImplemented(`Only basic schemas are implemented for response headers. Got ${JSON.stringify(schema)}`)
@@ -100,9 +105,9 @@ function unpack_parameter_expression(
     const fragments: CodeFragment[] = []
     let return_type_override: false | string = false
 
-    const hname = JSON.stringify(header.name)
+    const hname = JSON.stringify(args.header.name)
     /* local variable holding the "normalized" value of the field */
-    const normalized = 'normalized'
+    const normalized = args.gensym('normalized')
 
     fragments.push(
       cf`(()=>{`,
@@ -113,9 +118,9 @@ function unpack_parameter_expression(
       cf`const ${normalized} = `,
       (
         ['integer', 'number'].includes(schema.type!)
-          ? cf`Number(${header_field})`
+          ? cf`Number(${args.header_field})`
           /* string, but we catch other types further down */
-          : cf`${header_field}`
+          : cf`${args.header_field}`
       ), cf`;\n`,
 
     )
@@ -124,17 +129,17 @@ function unpack_parameter_expression(
       const enumv = JSON.stringify(schema.enum!)
       fragments.push(cf`
       if (!${enumv}.includes(${normalized})) {
-        throw new generator_common.InvalidData(
+        throw new ${args.generator_common_symbol}.InvalidData(
             'header', ${hname} + ' not in ' + ${enumv})
         }\n`)
-      return_type_override = `generator_common.Unlist<${enumv}>`
+      return_type_override = `${args.generator_common_symbol}.Unlist<${enumv}>`
     }
 
     if ('const' in schema) {
       const constv = JSON.stringify(schema.const!)
       fragments.push(cf`
       if (${constv} !== ${normalized}) {
-        throw new generator_common.InvalidData(
+        throw new ${args.generator_common_symbol}.InvalidData(
         'header', ${hname} + " !== " + ${constv})
       }\n`)
       return_type_override = constv
@@ -153,7 +158,7 @@ function unpack_parameter_expression(
     function validator(test: CodeFragment, response: CodeFragment): CodeFragment[] {
       return [
         cf`if (!(`, test, cf`)) {
-        throw new generator_common.InvalidData('header',`,
+        throw new ${args.generator_common_symbol}.InvalidData('header',`,
         response,
         cf`)}\n`
       ]
@@ -215,11 +220,11 @@ function unpack_parameter_expression(
 
         if ('format' in schema) {
           // TODO in all these cases, we should attach the format as a parameter.
-          if (schema.format! in string_formats) {
+          if (schema.format! in args.string_formats) {
             fragments.push(
               cf`return `,
               new CodeFragment(
-                string_formats[schema.format!]!.parse(normalized))
+                args.string_formats[schema.format!]!.parse(normalized))
             )
             return_type_override = false
           } else {
@@ -246,8 +251,8 @@ function unpack_parameter_expression(
 
     return fragments
 
-  } else if ('content' in header) {
-    const content = resolve(header.content!, document)
+  } else if ('content' in args.header) {
+    const content = resolve(args.header.content!, args.document)
     if (Object.keys(content).length !== 1) {
       throw new Error
     }
@@ -257,12 +262,13 @@ function unpack_parameter_expression(
     switch (mimetype) {
       case 'text/plain':
         // NOTE possibly check header deeper here
-        return [cf`${header_field} `]
+        return [cf`${args.header_field} `]
 
       case 'application/json': {
         const fragments: CodeFragment[] = []
+        const content_var = args.gensym('content')
         fragments.push(cf`(() => {
-              const content = JSON.parse(${header_field}); `)
+            const ${content_var} = JSON.parse(${args.header_field}); `)
 
         if ('schema' in body) {
           body.schema!
@@ -270,13 +276,14 @@ function unpack_parameter_expression(
             cf`return `,
             ...validate_and_parse_body({
               schema: body.schema!,
-              body_var: 'content',
-              document: document,
-              string_formats: string_formats,
+              body_var: content_var,
+              gensym: args.gensym,
+              string_formats: args.string_formats,
+              document: args.document,
             }),
             cf`; \n`)
         } else {
-          fragments.push(cf`return content; \n`)
+          fragments.push(cf`return ${content_var};\n`)
         }
 
         fragments.push(cf`})()`)
@@ -284,14 +291,14 @@ function unpack_parameter_expression(
       }
 
       default:
-        throw new NotImplemented(`Headers(or parameters) of type ${mimetype} not implemented.Got ${JSON.stringify(body)} `)
+        throw new NotImplemented(`Headers (or parameters) of type ${mimetype} not implemented.Got ${JSON.stringify(body)} `)
     }
 
   } else {
     console.warn(
       'Found header or parameter with neither content nor schema: '
-      + `${header_field}, ${JSON.stringify(header)} `)
-    return [cf`${header_field} `]
+      + `${args.header_field}, ${JSON.stringify(args.header)} `)
+    return [cf`${args.header_field} `]
   }
 }
 
@@ -320,6 +327,7 @@ a query string.
 function pack_parameter_expression(
   param_object: string,
   parameter: Parameter | (Header & { in: 'header', name: string }),
+  gensym: (hint?: string) => string,
   string_formats: { [format: string]: FormatSpec },
   document: OpenAPISpec,
 ): CodeFragment[] {
@@ -372,12 +380,14 @@ function pack_parameter_expression(
       case 'simple':
         return [
           cf`[[${key}, `,
-          ...handle_simple_parameter(schema, value, explode, string_formats, document),
+          ...handle_simple_parameter(schema, value, explode, gensym, string_formats, document),
           cf`]]`
         ]
 
       case 'form':
-        return handle_form_parameter(schema, key, value, explode, string_formats, document)
+        return handle_form_parameter(
+          schema, key, value, explode,
+          gensym, string_formats, document)
 
       case 'deepObject':
       /*
@@ -409,15 +419,19 @@ the OpenAPI specification explicitly prompting us to ignore
 it). Otherwise, an ObjectField is returned, detailing the name and
 type of the parameter. The type is "translated" from an OpenAPI
 specification to a concrete TypeScript type.
+
+@param types_symbol
+symbol which the generated types is imported under.
  */
 function format_parameter(
   parameter: Parameter | (Header & { in: 'header', name: string }),
+  types_symbol: string,
   string_formats: { [format: string]: FormatSpec },
   document: OpenAPISpec,
 ): null | ObjectField {
   const name = parameter.name
 
-  const type = format_parameter_type(parameter, string_formats, document)
+  const type = format_parameter_type(parameter, types_symbol, string_formats, document)
 
   switch (parameter.in) {
     case 'query':
@@ -464,9 +478,13 @@ to previously defined types.
 Either pa parameter object, or a header object, since those are
 basically identical. NOTE this means that this function should
 possibly be renamed, and moved to a common location.
+
+@param types_symbol
+symbol which the generated types is imported under.
  */
 function format_parameter_type(
   parameter: Parameter | Header,
+  types_symbol: string,
   string_formats: { [format: string]: FormatSpec },
   document: OpenAPISpec,
 ): CodeFragment[] {
@@ -479,9 +497,9 @@ function format_parameter_type(
     value for transport */
     const [[_, media]] = content
 
-    return schema_to_typescript(media.schema ?? {}, 'types.', string_formats, document)
+    return schema_to_typescript(media.schema ?? {}, `${types_symbol}.`, string_formats, document)
   } else if ('schema' in parameter) {
-    return schema_to_typescript(parameter.schema ?? {}, 'types.', string_formats, document)
+    return schema_to_typescript(parameter.schema ?? {}, `${types_symbol}.`, string_formats, document)
   } else {
     throw new Error(`Content or Schema required in headers and parameter. Got ${JSON.stringify(parameter)}`)
   }
@@ -504,34 +522,45 @@ Expression evaluating to a TypeScript object, which fullfills
 function handle_object_schema_parameter(
   schema: Schema & { type: 'object' },
   value: string,
+  gensym: (hint?: string) => string,
   string_formats: { [format: string]: FormatSpec },
   document: OpenAPISpec,
 ): CodeFragment[] {
+  const serializers_var = gensym('serializers')
   const out: CodeFragment[] = [cf`(()=>{`]
   if ('properties' in schema) {
     const properties = resolve(schema.properties!, document)
-    out.push(cf` const serializers = `)
+    out.push(cf`const ${serializers_var} = `)
+
+    const x = gensym('x')
     out.push(...map_to_ts_object(Object.entries(properties).map(([name, property]) => [
       name, [
-        cf`(x) => `,
+        cf`(${x}) => `,
         ...handle_simple_parameter(
           resolve(property, document),
-          'x',
+          x,
           false,
+          gensym,
           string_formats,
           document),
       ]
     ])))
   }
 
-  const serializer = 'items' in schema
-    ? `serializers[key]`
-    : 'String'
 
-  out.push(cf`
-        const pairs = Object.entries(${value}).map(([key, value])=>{
-        return [key, ${serializer}(value)]
-        });`)
+  {
+    const key_v = gensym('key')
+    const value_v = gensym('value')
+
+    const serializer = 'items' in schema
+      ? `${serializers_var}[${key_v}]`
+      : 'String'
+
+    out.push(cf`
+  const pairs = Object.entries(${value}).map(([${key_v}, ${value_v}])=>{
+    return [${key_v}, ${serializer}(${value_v})]
+  });`)
+  }
   out.push(cf`})()`)
 
   return out
@@ -549,6 +578,7 @@ function handle_simple_parameter(
   schema: Schema,
   value: string,
   explode: boolean,
+  gensym: (hint?: string) => string,
   string_formats: { [format: string]: FormatSpec },
   document: OpenAPISpec,
 ): CodeFragment[] {
@@ -579,7 +609,7 @@ function handle_simple_parameter(
 
     case "object": {
       const pairs = handle_object_schema_parameter(schema as Schema & { type: 'object' },
-        value, string_formats, document)
+        value, gensym, string_formats, document)
 
       if (explode) {
         return [cf`${pairs}.map(p => p.join('=')).join(',')`]
@@ -590,11 +620,12 @@ function handle_simple_parameter(
 
     case "array": {
       if ('items' in schema) {
+        const x = gensym('x')
         return [
-          cf`${value}.map(x => `,
+          cf`${value}.map(${x} => `,
           ...handle_simple_parameter(
             resolve(schema.items!, document),
-            'x', false, string_formats, document),
+            x, false, gensym, string_formats, document),
           cf`).join(',')`
         ]
       } else {
@@ -624,6 +655,7 @@ function handle_form_parameter(
   key: string,
   value: string,
   explode: boolean,
+  gensym: (hint?: string) => string,
   string_formats: { [format: string]: FormatSpec },
   document: OpenAPISpec,
 ): CodeFragment[] {
@@ -643,7 +675,8 @@ function handle_form_parameter(
     case "array":
       if (explode) {
         // TODO encode each component
-        return [cf`${value}.map(v => [${key}, v])`]
+        const v = gensym('v')
+        return [cf`${value}.map(${v} => [${key}, ${v}])`]
       } else {
         // TODO encode each component of value
         return [cf`[[${key}, ${value}.join(',')]]`]
@@ -651,7 +684,7 @@ function handle_form_parameter(
 
     case "object":
       const pairs = handle_object_schema_parameter(schema as Schema & { type: 'object' },
-        value, string_formats, document)
+        value, gensym, string_formats, document)
 
       if (explode) {
         return pairs

@@ -52,6 +52,20 @@ function get_import_path(current: OutputEntry, other: OutputEntry): string {
 import { get_gensym } from './gensym'
 import { sfc32, randseed } from './srand'
 
+import { LocationIdentifier, get_here } from './formatters/util'
+
+function import_star(args: {
+  as: string,
+  from: string,
+  l: LocationIdentifier,
+  type?: boolean,
+}): CodeFragment {
+  return new CodeFragment(
+    `import ${args.type ? 'type' : ''} * as ${args.as} from ${ts_string(args.from)};\n`, { error: args.l.error },
+  )
+}
+
+
 async function main(): Promise<number> {
   const configuration = await parse_command_line()
 
@@ -101,7 +115,7 @@ async function main(): Promise<number> {
       if ('imports' in format) {
         return Object.entries(format.imports!)
           .map(([module, symbols]) =>
-            cf`import { ${symbols.join(', ')} } from ${ts_string(module)};\n`,
+            cf`import { ${symbols.join(', ')} } from ${ts_string(module)}; \n`,
           )
       } else { return [] }
     })
@@ -142,21 +156,29 @@ async function main(): Promise<number> {
       content: (() => {
         const schemas = document.components?.schemas
         if (!schemas) return []
-        const type_ns = 'APITypes'
-        const validator = 'validator'
+        const type_ns = gensym('APITypes')
 
         const lines = []
         lines.push(
-          cf`import { InvalidData } from ${ts_string(get_import_path(self, configuration.output.common))};\n`,
-          cf`import type * as ${type_ns} from ${ts_string(get_import_path(self, configuration.output.types))};\n`,
-          cf`import * as validators from ${ts_string(get_import_path(self, configuration.output.validators))};\n`,
+          cf`import { InvalidData } from ${ts_string(get_import_path(self, configuration.output.common))}; \n`,
+          import_star({
+            as: type_ns,
+            from: get_import_path(self, configuration.output.types),
+            l: get_here(),
+            type: true,
+          }),
+          import_star({
+            as: 'validators',
+            from: get_import_path(self, configuration.output.validators),
+            l: get_here(),
+          }),
         )
 
         for (const [key, value] of Object.entries(schemas)) {
           lines.push(cf`
 validator.addSchema(
-    ${JSON.stringify(change_refs(value as any))},
-    ${ts_string(`/components/schemas/${key}`)});\n`)
+  ${JSON.stringify(change_refs(value as any))},
+  ${ts_string(`/components/schemas/${key}`)});\n`)
         }
 
         lines.push(
@@ -178,6 +200,8 @@ validator.addSchema(
 
     /* Generate file with API calls */
     const self = configuration.output.calls
+    const generator_common_symbol = gensym('generator_common')
+    const types_symbol = gensym('types')
     await generate({
       ...config_common,
       preamble_path: preamble('calls.ts'),
@@ -190,8 +214,25 @@ validator.addSchema(
             InvalidData,
             InternalRequestError,
         } from ${ts_string(get_import_path(self, configuration.output.common))};\n`,
-        cf`import type * as types from ${ts_string(get_import_path(self, configuration.output.types))};\n`,
-        cf`import * as validators from ${ts_string(get_import_path(self, configuration.output.validators))};\n`,
+
+        import_star({
+          as: types_symbol,
+          from: get_import_path(self, configuration.output.types),
+          l: get_here(),
+          type: true,
+        }),
+
+        import_star({
+          as: 'validators',
+          from: get_import_path(self, configuration.output.validators),
+          l: get_here(),
+        }),
+
+        import_star({
+          as: generator_common_symbol,
+          from: get_import_path(self, configuration.output.common),
+          l: get_here(),
+        }),
 
         ...string_format_imports,
 
@@ -202,6 +243,9 @@ validator.addSchema(
             path: path,
             body: body,
             default_security: document.security ?? [],
+            generator_common_symbol: generator_common_symbol,
+            types_symbol: types_symbol,
+            gensym: gensym,
             string_formats: string_formats,
             document: document,
           })),
@@ -212,19 +256,26 @@ validator.addSchema(
   {
     /* Generate server handler types */
     const self = configuration.output.server_handler_types
+    const types_symbol = gensym('types')
     await generate({
       ...config_common,
       preamble_path: preamble('server-types.ts'),
       output_path: self.path,
       content:
         [
-          cf`import type * as types from ${ts_string(get_import_path(self, configuration.output.types))};\n`,
+          import_star({
+            as: types_symbol,
+            from: get_import_path(self, configuration.output.types),
+            l: get_here(),
+            type: true,
+          }),
           ...string_format_imports,
           ...Object.entries(document.paths)
             .flatMap(([path, body]) =>
               format_path_item_as_server_handler_types({
                 path: path,
                 body: body,
+                types_symbol: types_symbol,
                 string_formats: string_formats,
                 document: document,
               })),
@@ -242,18 +293,50 @@ validator.addSchema(
       content: (() => {
         const result: CodeFragment[] = []
 
-        result.push(cf`import * as handler_types from ${ts_string(get_import_path(self, configuration.output.server_handler_types))};\n`)
-        result.push(cf`import * as validators from ${ts_string(get_import_path(self, configuration.output.validators))};\n`)
-        result.push(cf`import * as generator_common from ${ts_string(get_import_path(self, configuration.output.common))};\n`)
+        const generator_common_symbol = gensym('generator_common')
+        const types_symbol = gensym('types')
 
-        result.push(...format_path_item_setup_server_router(document.paths))
+        result.push(import_star({
+          as: types_symbol,
+          from: get_import_path(self, configuration.output.types),
+          l: get_here(),
+          type: true,
+        }))
+
+        result.push(import_star({
+          as: 'handler_types',
+          from: get_import_path(self, configuration.output.server_handler_types),
+          l: get_here(),
+        }))
+
+        result.push(import_star({
+          as: 'validators',
+          from: get_import_path(self, configuration.output.validators),
+          l: get_here(),
+        }))
+
+        result.push(import_star({
+          as: generator_common_symbol,
+          from: get_import_path(self, configuration.output.common),
+          l: get_here(),
+        }))
+
+        result.push(...format_path_item_setup_server_router(document.paths, gensym))
 
         result.push(...string_format_imports)
 
         for (const [path, body] of Object.entries(document.paths)) {
           result.push(
-            ...format_path_item_as_server_endpoint_handlers(
-              path, body, gensym, string_formats, document))
+            ...format_path_item_as_server_endpoint_handlers({
+              path: path,
+              body: body,
+              generator_common_symbol: generator_common_symbol,
+              types_symbol: types_symbol,
+
+              gensym: gensym,
+              string_formats: string_formats,
+              document: document,
+            }))
         }
 
         return result
