@@ -804,7 +804,12 @@ function format_operation_as_server_endpoint_handler_type(args: {
       bodies: request_body.content,
       body_required: request_body.required === true,
       types_symbol: args.types_symbol,
-      source_param: 'args.body.body /* TODO */', // TODO where does this come from?
+      /* Expression where handle_request_body looks for
+      the request body. Since we only check the types
+      returned, this will never be seen.
+      Therefore, set to an expression which fails compilation.
+       */
+      source_param: '(1 as string)',
       string_formats: args.string_formats,
       document: args.document,
     })
@@ -1074,7 +1079,7 @@ For responses, this should always be true.
 
 @param args.source_param
 TypeScript expression evaluating to the parsed form of the body.
-**May** be evaluated multiple times.
+Will be evaluated multiple times.
 
 @param args.string_formats
 @param agrs.document
