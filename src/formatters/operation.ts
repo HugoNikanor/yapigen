@@ -14,6 +14,7 @@ import type {
   Response,
   RequestBody,
   SecurityRequirement,
+  Schema,
 } from '../openapi'
 import { resolve } from '../json-pointer'
 import {
@@ -800,28 +801,21 @@ function format_operation_as_server_endpoint_handler_type(args: {
 
     const request_body = resolve(args.operation.requestBody, args.document)
 
-    for (const alt of handle_request_body({
-      bodies: request_body.content,
-      body_required: request_body.required === true,
-      types_symbol: args.types_symbol,
-      /* Expression where handle_request_body looks for
-      the request body. Since we only check the types
-      returned, this will never be seen.
-      Therefore, set to an expression which fails compilation.
-       */
-      source_param: '(1 as string)',
-      string_formats: args.string_formats,
-      document: args.document,
-    })
-    ) {
+    for (const [content_type, description] of Object.entries(request_body.content)) {
       body_parameters.push(object_to_type([
         {
           name: 'content_type',
-          type: [new CodeFragment(ts_string(alt.content_type))],
+          type: [new CodeFragment(ts_string(content_type))],
         },
         {
           name: 'body',
-          type: alt.type,
+          type: request_body_to_serializer_input_type({
+            schema: description.schema,
+            content_type: content_type,
+            types_symbol: args.types_symbol,
+            string_formats: args.string_formats,
+            document: args.document,
+          }),
         },
       ]))
     }
@@ -1143,29 +1137,13 @@ function handle_request_body(args: {
   const result: ReturnType<typeof handle_request_body> = []
 
   for (const [content_type, description] of Object.entries(args.bodies)) {
-    let schema_ = description.schema
-
-    let type: CodeFragment[]
-    if (schema_) {
-      type = schema_to_typescript(
-        schema_, `${args.types_symbol}.`, args.string_formats, args.document)
-    } else {
-      switch (content_type) {
-        case 'text/plain':
-          type = [cf`string`]
-          break
-        case 'application/json':
-          type = [cf`Json`]
-          break
-        case 'application/binary':
-        case 'application/octet-stream':
-          type = [cf`Buffer`]
-          break
-        default:
-          type = [cf`unknown`]
-          break
-      }
-    }
+    const type = request_body_to_serializer_input_type({
+      schema: description.schema,
+      content_type: content_type,
+      types_symbol: args.types_symbol,
+      string_formats: args.string_formats,
+      document: args.document,
+    })
 
     let serializer: (x: string) => CodeFragment[] = (serializers as any)[content_type]
 
@@ -1187,6 +1165,34 @@ function handle_request_body(args: {
   }
 
   return result
+}
+
+function request_body_to_serializer_input_type(args: {
+  schema: Schema | Reference | undefined,
+  content_type: string,
+
+  types_symbol: string,
+
+  string_formats: { [format: string]: FormatSpec },
+  document: OpenAPISpec,
+}): CodeFragment[] {
+  if (args.schema) {
+    return schema_to_typescript(
+      args.schema, `${args.types_symbol}.`,
+      args.string_formats, args.document)
+  } else {
+    switch (args.content_type) {
+      case 'text/plain':
+        return [cf`string`]
+      case 'application/json':
+        return [cf`Json`]
+      case 'application/binary':
+      case 'application/octet-stream':
+        return [cf`Buffer`]
+      default:
+        return [cf`unknown`]
+    }
+  }
 }
 
 function build_query_string(args: {
