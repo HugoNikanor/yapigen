@@ -451,8 +451,6 @@ function format_operation_api_call(args: {
 
         gensym: args.gensym,
         string_formats: args.string_formats,
-        // TODO where does this comes from?
-        content_type_return_name: 'content_type',
       })
     }).concat([
       new CodeFragment(

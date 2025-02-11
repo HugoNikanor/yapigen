@@ -35,10 +35,6 @@ clause for.
 TypeScript fragment resolving to the object containing the response
 from a fetch request. Will be evaluated multiple times.
 
-@param args.content_type_return_name
-Name of common parameter in return type containing content type.
-Should most likely by `content_type`.
-
 @param args.document
 Base OpenAPI specification worked with. Used to resolve references.
 
@@ -57,7 +53,6 @@ function format_response(args: {
   status: string,
   response: Response,
   response_object: string,
-  content_type_return_name: string,
   security: SecurityRequirement[],
   generator_common_symbol: string,
   types_symbol: string,
@@ -171,7 +166,7 @@ function format_response(args: {
     for (const [mimetype, media] of Object.entries(args.response.content!)) {
       frags.push(cf`case ${ts_string(mimetype)}: {\n`)
       response.set(
-        args.content_type_return_name,
+        'content_type',
         [new CodeFragment(ts_string(mimetype))])
 
       if (mimetype === 'application/json') {
@@ -194,11 +189,10 @@ function format_response(args: {
         response.set('body', [cf`await ${args.response_object}.text()`])
 
       } else if (mimetype === 'application/binary') {
-        // response.set(args.content_type_return_name, [cf`content_type`])
         response.set('body', [cf`await ${args.response_object}.arrayBuffer()`])
 
       } else {
-        response.set(args.content_type_return_name, [cf`${content_type_var}`])
+        response.set('content_type', [cf`${content_type_var}`])
         response.set('body', [cf`await ${args.response_object}.arrayBuffer()`])
       }
       frags.push(cf`return `, ...map_to_ts_object([...response]), cf`;`)
