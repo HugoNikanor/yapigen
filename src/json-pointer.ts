@@ -5,6 +5,9 @@ import type {
   Reference,
 } from './openapi'
 
+import type { Json } from './json'
+import { isObject } from './util'
+
 /**
 Very basic json pointer library. Only supports absolute pointers, and
 only those within the current document.
@@ -17,9 +20,9 @@ Basic implementation of json pointer (RFC 6901), but also checks that
 each string starts with '#'.
  */
 function resolveReference(
-  doc: OpenAPISpec,
+  doc: Json[] | { [key: string]: Json },
   pointer: string,
-): unknown {
+): Json {
   const components = pointer.split('/')
 
   if (components.length === 0) {
@@ -31,16 +34,23 @@ function resolveReference(
   }
 
 
-  let object = doc
+  let object: Json | undefined = doc
   for (const component_ of components.slice(1)) {
 
     const component = json_path_unescape(component_)
 
     const idx = Number(component)
     if (isNaN(idx)) {
-      object = object[component] as any
+      if (!isObject(object)) {
+        throw new Error(`Attempted to get attribute of non-object: ${JSON.stringify(object)}, ${component}`)
+      }
+
+      object = (object as { [key: string]: Json })[component]
     } else {
-      object = object[idx] as any
+      if (!Array.isArray(object)) {
+        throw new Error(`Attempted to index a non-array: ${JSON.stringify(object)}, ${idx}`)
+      }
+      object = object[idx]
     }
 
     if (object === undefined) {
@@ -56,9 +66,13 @@ function resolve<T extends Object>(
   document: OpenAPISpec,
 ): T {
   if ('$ref' in object) {
-    return resolveReference(
-      document,
-      object['$ref'] as string) as T
+    const result = resolveReference(
+      document as { [key: string]: Json },
+      object['$ref'] as string)
+    if (!isObject(result)) {
+      throw new Error(`"${object['$ref']}" didn't resolve to an object: "${result}"`)
+    }
+    return result as T
   }
 
   return object as T

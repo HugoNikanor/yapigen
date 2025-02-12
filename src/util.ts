@@ -3,6 +3,7 @@ export {
   concat,
   zip,
   accumulate,
+  isObject,
 }
 
 function intersperse<T>(el: T, lst: T[]): T[] {
@@ -48,4 +49,18 @@ function accumulate(l: number[]): number[] {
     result.push(current)
   }
   return result
+}
+
+
+/**
+Checks if object is a non-null JavaScript object, which also isn't an
+array.
+ */
+function isObject<K extends string | number | symbol>(
+  x: unknown,
+): x is (Record<K, unknown> & { length?: never }) {
+  if (x === null) return false
+  if (typeof x !== 'object') return false
+  if (Array.isArray(x)) return false
+  return true
 }
