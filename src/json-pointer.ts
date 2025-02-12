@@ -61,7 +61,7 @@ function resolveReference(
   return object
 }
 
-function resolve<T extends Object>(
+function resolve<T extends object>(
   object: T | Reference,
   document: OpenAPISpec,
 ): T {

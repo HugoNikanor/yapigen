@@ -1,6 +1,10 @@
 export { validate_and_parse_body }
 
-import { validator_function_name, change_refs } from './validator'
+import {
+  validator_function_name,
+  change_refs,
+  SchemaLike,
+} from './validator'
 import { schema_to_parser } from '../json-schema'
 import type {
   HttpsSpecOpenapisOrgOas30Schema20241018 as OpenAPISpec,
@@ -56,7 +60,7 @@ function validate_and_parse_body(args: {
     const schema = resolve(args.schema, args.document)
     // TODO get `validators` module symbol from somewhere
     validator = cf`validators.validate_type(${args.body_var}, ${JSON.stringify(
-      change_refs(schema as any),
+      change_refs(schema as SchemaLike),
       (k, v) => {
         if ([
           /* Not handled by the validator */

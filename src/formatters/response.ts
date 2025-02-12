@@ -95,7 +95,7 @@ function format_response(args: {
 
     /* Declare a struct of return headers */
     const headers_var = args.gensym('headers')
-    let return_s: CodeFragment[] = [cf`const ${headers_var}: `, ...headers_type, cf` = {`]
+    const return_s: CodeFragment[] = [cf`const ${headers_var}: `, ...headers_type, cf` = {`]
     for (const header of groups.get(true /* required headers */) ?? []) {
       const key = ts_string(header.name)
       const header_var = args.gensym('header')

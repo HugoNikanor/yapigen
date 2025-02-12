@@ -330,12 +330,12 @@ async function parse_command_line(
           break
         }
 
-        file_format = `.${format}` as any
+        file_format = `.${format}` as Exclude<typeof file_format, undefined>
 
         break
       }
 
-      case '--config':
+      case '--config': {
         const filename = process.argv[++i]
         configuration = {
           ...configuration,
@@ -344,6 +344,7 @@ async function parse_command_line(
         sourced_files.push(filename)
         file_format = undefined
         break
+      }
 
       case '--input':
         configuration.input = process.argv[++i]
@@ -366,7 +367,7 @@ async function parse_command_line(
         configuration['gensym-seed'] = process.argv[++i].split(',').map(x => Number(x)) as [number, number, number, number]
         break
 
-      default:
+      default: {
         /* Handle all --output-<part> flags at once. */
         const m = process.argv[i].match(/^--output-(.*)/)
         if (m) {
@@ -387,11 +388,12 @@ async function parse_command_line(
           configuration.output = {
             ...configuration.output,
             [m[1]]: { path: process.argv[++i] } satisfies OutputEntry
-          } as any
+          } as typeof configuration.output
 
         } else {
           console.warn(`Unknown command line flag: ${process.argv[i]}`)
         }
+      }
     }
   }
 

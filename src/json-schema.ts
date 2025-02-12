@@ -445,7 +445,7 @@ function schema_to_serializer_or_parser(
         switch ((groups.get('object') ?? []).length) {
           case 0:
             break
-          case 1:
+          case 1: {
             parts.push(cf`if (typeof ${x} === 'object' && x !== null) {`)
             const part = inner(groups.get('object')![0], x)
             if (part) {
@@ -455,6 +455,7 @@ function schema_to_serializer_or_parser(
             }
             parts.push(cf`}`)
             break
+          }
           default:
             // if multiple object types, fail with not implemented
             throw new Error(`Can't have multiple objects in a oneOf switch without a discriminator. Got: ${JSON.stringify(groups.get('object'))}`)

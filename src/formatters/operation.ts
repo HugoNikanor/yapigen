@@ -280,13 +280,11 @@ function format_operation_api_call(args: {
 
   // input to function is `parameters` and `requestBody`.
 
-  if (true || parameters.length > 0) {
-    function_args.push({
-      name: 'params',
-      optional: parameters.every(({ optional }) => optional === true),
-      type: object_to_type(parameters)
-    })
-  }
+  function_args.push({
+    name: 'params',
+    optional: parameters.every(({ optional }) => optional === true),
+    type: object_to_type(parameters)
+  })
 
   frags.push(
     cf`export async function ${args.operation.operationId}`,
@@ -1145,7 +1143,7 @@ function handle_request_body(args: {
       document: args.document,
     })
 
-    let serializer: (x: string) => CodeFragment[] = (serializers as any)[content_type]
+    let serializer: (x: string) => CodeFragment[] = serializers[content_type as keyof typeof serializers]
 
     if (!serializer) {
       console.warn(`Generator don't know how to serialize "${content_type}", attempting sending it directly.`)

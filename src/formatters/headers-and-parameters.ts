@@ -271,7 +271,6 @@ function unpack_parameter_expression(args: {
             const ${content_var} = JSON.parse(${args.header_field}); `)
 
         if ('schema' in body) {
-          body.schema!
           fragments.push(
             cf`return `,
             ...validate_and_parse_body({
@@ -396,6 +395,7 @@ function pack_parameter_expression(
 
           OpenAPI Specification Version 3.1.1
        */
+      // fallthrough
       case 'matrix':
       case 'label':
       case 'spaceDelimited':
@@ -682,7 +682,7 @@ function handle_form_parameter(
         return [cf`[[${key}, ${value}.join(',')]]`]
       }
 
-    case "object":
+    case "object": {
       const pairs = handle_object_schema_parameter(schema as Schema & { type: 'object' },
         value, gensym, string_formats, document)
 
@@ -691,6 +691,7 @@ function handle_form_parameter(
       } else {
         return [cf`[[${key}, ${pairs}.flatMap(x => x).join(',')]]`]
       }
+    }
 
     case "null":
       /* "null" sholudn't really exist, so we ignore it for now. */

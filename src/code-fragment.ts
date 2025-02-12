@@ -229,7 +229,7 @@ Contents are handled just as if a regular string fragment was used.
  */
 function cf(
   template: TemplateStringsArray,
-  ...args: any[]
+  ...args: unknown[]
 ): CodeFragment {
 
   let result = template[0]

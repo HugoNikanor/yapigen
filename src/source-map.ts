@@ -26,9 +26,9 @@ type FragmentInfo = {
   /* Width of fragment in generated text */
   width: number | undefined,
 } & (
-    | {
-      /* Fragment not mapping to any source, purely part of the generator */
-    }
+    |
+    /* Fragment not mapping to any source, purely part of the generator */
+    Record<never, never>
     | {
       /* Fragment maps to the following */
 
@@ -85,7 +85,7 @@ type SourceMap = {
     gen_start: number,
     gen_width: number | undefined,
   } & (
-      | {}
+      | Record<never, never>
       | {
         source_file_idx: number,
         source_line: number,
@@ -244,7 +244,7 @@ async function read_source_map(args: {
   const validator = new Validator
 
   // console.log(raw_source_map)
-  validator.validate(raw_source_map, source_map_schema, { throwError: true })
+  const result = validator.validate(raw_source_map, source_map_schema, { throwError: true })
 
   const source_map_path = (() => {
     try {
@@ -259,7 +259,7 @@ async function read_source_map(args: {
   })()
 
   return parse_source_map(
-    raw_source_map as any as RawSourceMap,
+    result.instance as RawSourceMap,
     source_map_path,
   )
 }
@@ -368,7 +368,7 @@ function parse_source_map(
         gen_width: fragment.width,
       }
 
-      let source_location: {} | {
+      let source_location: Record<never, never> | {
         source_file_idx: number,
         source_line: number,
         source_column: number,

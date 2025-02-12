@@ -6,7 +6,6 @@ export {
 }
 
 import type {
-  HttpsSpecOpenapisOrgOas30Schema20241018 as OpenAPISpec,
   Schema
 } from '../openapi'
 import { CodeFragment, cf } from '../code-fragment'
@@ -24,7 +23,6 @@ function format_type_validator(
   },
   name: string,
   schema: Schema,
-  document: OpenAPISpec,
 ): CodeFragment[] {
   // TODO take `validators` as argument
   return [cf`

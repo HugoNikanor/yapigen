@@ -22,7 +22,7 @@ function sfc32(a: number, b: number, c: number, d: number): () => number {
   d >>>= 0
   return function() {
     a |= 0; b |= 0; c |= 0; d |= 0;
-    let t = (a + b | 0) + d | 0;
+    const t = (a + b | 0) + d | 0;
     d = d + 1 | 0;
     a = b ^ b >>> 9;
     b = c + (c << 3) | 0;

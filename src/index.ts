@@ -18,7 +18,7 @@ import {
   format_path_item_as_server_handler_types,
 } from './formatters/path-item'
 import { format_schema } from './formatters/schema'
-import { format_type_validator, change_refs } from './formatters/validator'
+import { format_type_validator, change_refs, SchemaLike } from './formatters/validator'
 import { resolve } from './json-pointer'
 import { CodeFragment, cf } from './code-fragment'
 import { ts_string } from './formatters/util'
@@ -177,7 +177,7 @@ async function main(): Promise<number> {
         for (const [key, value] of Object.entries(schemas)) {
           lines.push(cf`
 validator.addSchema(
-  ${JSON.stringify(change_refs(value as any))},
+  ${JSON.stringify(change_refs(value as SchemaLike))},
   ${ts_string(`/components/schemas/${key}`)});\n`)
         }
 
@@ -189,7 +189,7 @@ validator.addSchema(
                 /* Defined in the preamble */
                 validator: 'validator',
               },
-              name, resolve(schema, document), document)))
+              name, resolve(schema, document))))
 
         return lines
       })(),
