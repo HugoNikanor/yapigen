@@ -44,6 +44,9 @@ Symbol which the common generated library is imported under.
 @param args.types_symbol
 symbol which the generated types is imported under.
 
+@param args.validators_symbol
+Symbol the generated validators are imported under.
+
 @returns
 A TypeScript fragment suitable for pasting into a switch stament.
 This means that it's either "nothing", or something beginning with
@@ -56,6 +59,7 @@ function format_response(args: {
   security: SecurityRequirement[],
   generator_common_symbol: string,
   types_symbol: string,
+  validators_symbol: string,
 
   gensym: (hint?: string) => string,
   string_formats: { [format: string]: FormatSpec },
@@ -114,6 +118,7 @@ function format_response(args: {
           header_field: header_var,
           header: header,
           generator_common_symbol: args.generator_common_symbol,
+          validators_symbol: args.validators_symbol,
 
           gensym: args.gensym,
           string_formats: args.string_formats,
@@ -138,6 +143,7 @@ function format_response(args: {
           header_field: header_var,
           header: header,
           generator_common_symbol: args.generator_common_symbol,
+          validators_symbol: args.validators_symbol,
 
           gensym: args.gensym,
           string_formats: args.string_formats,
@@ -176,6 +182,7 @@ function format_response(args: {
           response.set('body', validate_and_parse_body({
             schema: media.schema!,
             body_var: body_var,
+            validators_symbol: args.validators_symbol,
             gensym: args.gensym,
             string_formats: args.string_formats,
             document: args.document,

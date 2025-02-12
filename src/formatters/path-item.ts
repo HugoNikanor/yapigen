@@ -49,6 +49,9 @@ Symbol which the common generated library is imported under.
 
 @param args.types_symbol
 symbol which the generated types is imported under.
+
+@param args.validators_symbol
+Symbol the generated validators are imported under.
  */
 function format_path_item_as_api_call(args: {
   path: string,
@@ -56,6 +59,7 @@ function format_path_item_as_api_call(args: {
   default_security: SecurityRequirement[],
   generator_common_symbol: string,
   types_symbol: string,
+  validators_symbol: string,
 
   gensym: (hint?: string) => string,
   string_formats: { [format: string]: FormatSpec },
@@ -93,6 +97,7 @@ function format_path_item_as_api_call(args: {
       default_security: args.default_security,
       generator_common_symbol: args.generator_common_symbol,
       types_symbol: args.types_symbol,
+      validators_symbol: args.validators_symbol,
 
       gensym: args.gensym,
       string_formats: args.string_formats,
@@ -111,12 +116,24 @@ Symbol which the common generated library is imported under.
 
 @param args.types_symbol
 Symbol the generated type library is imported under.
+
+@param args.handler_types_symbol
+Symbol the generated handler types are imported under.
+
+@param args.validators_symbol
+Symbol the generated validators are imported under.
+
+@param args.express_symbol
+Symbol the express library is importend under.
  */
 function format_path_item_as_server_endpoint_handlers(args: {
   path: string,
   body: PathItem,
   generator_common_symbol: string,
   types_symbol: string,
+  handler_types_symbol: string,
+  validators_symbol: string,
+  express_symbol: string,
 
   gensym: (hint?: string) => string,
   string_formats: { [format: string]: FormatSpec },
@@ -140,6 +157,9 @@ function format_path_item_as_server_endpoint_handlers(args: {
       shared_parameters: shared_parameters,
       generator_common_symbol: args.generator_common_symbol,
       types_symbol: args.types_symbol,
+      handler_types_symbol: args.handler_types_symbol,
+      validators_symbol: args.validators_symbol,
+      express_symbol: args.express_symbol,
 
       gensym: args.gensym,
       string_formats: args.string_formats,
@@ -152,11 +172,15 @@ function format_path_item_as_server_endpoint_handlers(args: {
 /**
 @param args.types_symbol
 symbol which the generated types is imported under.
+
+@param args.express_symbol
+Symbol the express library is importend under.
  */
 function format_path_item_as_server_handler_types(args: {
   path: string,
   body: PathItem,
   types_symbol: string,
+  express_symbol: string,
   string_formats: { [format: string]: FormatSpec },
   document: OpenAPISpec,
 }): CodeFragment[] {
@@ -177,6 +201,7 @@ function format_path_item_as_server_handler_types(args: {
         operation: args.body[op]!,
         shared_parameters: shared_parameters,
         types_symbol: args.types_symbol,
+        express_symbol: args.express_symbol,
         string_formats: args.string_formats,
         document: args.document,
       }))
@@ -200,9 +225,17 @@ type level. Types are imported from the module configured in
 This router expects a number of functions to be present locally in the
 same module as it. These should be called `handle_${operationId}`.
 See `format_path_item_as_server_endpoint_handlers`.
+
+@param handler_types_symbol
+Symbol the generated handler types are imported under.
+
+@param express_symbol
+Symbol the express library is importend under.
  */
 function format_path_item_setup_server_router(
   paths: { [path: string]: PathItem },
+  handler_types_symbol: string,
+  express_symbol: string,
   gensym: (hint?: string) => string,
 ): CodeFragment[] {
   const fragments: CodeFragment[] = []
@@ -218,16 +251,16 @@ function format_path_item_setup_server_router(
         if (op in item) {
           return {
             name: op,
-            type: [cf`handler_types.${item[op]!.operationId!}`],
+            type: [cf`${handler_types_symbol}.${item[op]!.operationId!}`],
           }
         } else return false
       }).filter(x => x !== false))
     }))))
 
-  fragments.push(cf`): Router {\n`)
+  fragments.push(cf`): ${express_symbol}.Router {\n`)
   const router_var = gensym('router')
-  fragments.push(cf`const ${router_var} = Router();\n`)
-  fragments.push(cf`${router_var}.use(express.raw({ type: '*/*' }));\n`)
+  fragments.push(cf`const ${router_var} = ${express_symbol}.Router();\n`)
+  fragments.push(cf`${router_var}.use(${express_symbol}.raw({ type: '*/*' }));\n`)
 
   for (const [path, item] of Object.entries(paths)) {
     for (const op of operations) {

@@ -151,12 +151,15 @@ async function main(): Promise<number> {
     const self = configuration.output.validators
     await generate({
       ...config_common,
-      preamble_path: preamble('type-validators.ts'),
       output_path: self.path,
       content: (() => {
         const schemas = document.components?.schemas
         if (!schemas) return []
         const type_ns = gensym('APITypes')
+        const validators_symbol = gensym('validators')
+        const validator_symbol = gensym('validator')
+        const schema_validator_symbol = gensym('Validator')
+        const schema_type_symbol = gensym('Schema')
 
         const lines = []
         lines.push(
@@ -168,15 +171,38 @@ async function main(): Promise<number> {
             type: true,
           }),
           import_star({
-            as: 'validators',
+            as: validators_symbol,
             from: get_import_path(self, configuration.output.validators),
             l: get_here(),
           }),
+          cf`import { Validator as ${schema_validator_symbol} } from 'jsonschema';\n`,
+          cf`import type { Schema as ${schema_type_symbol} } from 'jsonschema';\n`,
+          cf`const ${validator_symbol} = new ${schema_validator_symbol};\n`,
+          cf`
+/**
+@throws InvalidData
+ */
+export function validate_type(
+  body: unknown,
+  schema: ${schema_type_symbol},
+): true {
+  const result = ${validator_symbol}.validate(body, schema)
+  if (!result.valid) {
+    throw new InvalidData('body',
+      result.errors.map((err) => {
+        const path = err.path.map(s => '/' + String(s)).join('')
+        return \`Object at "#\${path}" \${err.message}.\\nGot \${JSON.stringify(err.instance)}.\`
+      }).join('\\n\\n'))
+  }
+
+  return true
+}
+          `,
         )
 
         for (const [key, value] of Object.entries(schemas)) {
           lines.push(cf`
-validator.addSchema(
+${validator_symbol}.addSchema(
   ${JSON.stringify(change_refs(value as SchemaLike))},
   ${ts_string(`/components/schemas/${key}`)});\n`)
         }
@@ -186,10 +212,11 @@ validator.addSchema(
             format_type_validator(
               {
                 type_ns: type_ns,
-                /* Defined in the preamble */
-                validator: 'validator',
+                validator: validator_symbol,
               },
-              name, resolve(schema, document))))
+              name,
+              validators_symbol,
+              resolve(schema, document))))
 
         return lines
       })(),
@@ -202,6 +229,7 @@ validator.addSchema(
     const self = configuration.output.calls
     const generator_common_symbol = gensym('generator_common')
     const types_symbol = gensym('types')
+    const validators_symbol = gensym('validators')
     await generate({
       ...config_common,
       preamble_path: preamble('calls.ts'),
@@ -223,7 +251,7 @@ validator.addSchema(
         }),
 
         import_star({
-          as: 'validators',
+          as: validators_symbol,
           from: get_import_path(self, configuration.output.validators),
           l: get_here(),
         }),
@@ -245,6 +273,7 @@ validator.addSchema(
             default_security: document.security ?? [],
             generator_common_symbol: generator_common_symbol,
             types_symbol: types_symbol,
+            validators_symbol: validators_symbol,
             gensym: gensym,
             string_formats: string_formats,
             document: document,
@@ -257,9 +286,9 @@ validator.addSchema(
     /* Generate server handler types */
     const self = configuration.output.server_handler_types
     const types_symbol = gensym('types')
+    const express_symbol = gensym('express')
     await generate({
       ...config_common,
-      preamble_path: preamble('server-types.ts'),
       output_path: self.path,
       content:
         [
@@ -269,6 +298,7 @@ validator.addSchema(
             l: get_here(),
             type: true,
           }),
+          cf`import ${express_symbol} from 'express';\n`,
           ...string_format_imports,
           ...Object.entries(document.paths)
             .flatMap(([path, body]) =>
@@ -276,6 +306,7 @@ validator.addSchema(
                 path: path,
                 body: body,
                 types_symbol: types_symbol,
+                express_symbol: express_symbol,
                 string_formats: string_formats,
                 document: document,
               })),
@@ -288,7 +319,6 @@ validator.addSchema(
     const self = configuration.output.server_router
     await generate({
       ...config_common,
-      preamble_path: preamble('router.ts'),
       output_path: self.path,
       content: (() => {
         const result: CodeFragment[] = []
@@ -303,14 +333,18 @@ validator.addSchema(
           type: true,
         }))
 
+        const handler_types_symbol = gensym('handler_types')
+
         result.push(import_star({
-          as: 'handler_types',
+          as: handler_types_symbol,
           from: get_import_path(self, configuration.output.server_handler_types),
           l: get_here(),
         }))
 
+        const validators_symbol = gensym('validators')
+
         result.push(import_star({
-          as: 'validators',
+          as: validators_symbol,
           from: get_import_path(self, configuration.output.validators),
           l: get_here(),
         }))
@@ -321,7 +355,18 @@ validator.addSchema(
           l: get_here(),
         }))
 
-        result.push(...format_path_item_setup_server_router(document.paths, gensym))
+        const express_symbol = gensym('express')
+
+        result.push(cf`import ${express_symbol} from 'express';\n`)
+
+        // NOTE: this is only sometimes required.
+        // Make the inclusion conditional, to allow the importing code
+        // to omit this as a dependency depending on the OpenAPI
+        // schema.
+        result.push(cf`import * as qs from 'qs';\n`)
+
+        result.push(...format_path_item_setup_server_router(
+          document.paths, handler_types_symbol, express_symbol, gensym))
 
         result.push(...string_format_imports)
 
@@ -332,6 +377,9 @@ validator.addSchema(
               body: body,
               generator_common_symbol: generator_common_symbol,
               types_symbol: types_symbol,
+              handler_types_symbol: handler_types_symbol,
+              validators_symbol: validators_symbol,
+              express_symbol: express_symbol,
 
               gensym: gensym,
               string_formats: string_formats,

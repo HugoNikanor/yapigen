@@ -49,11 +49,15 @@ Specification of header object.
 
 @param args.generator_common_symbol
 Symbol which the common generated library is imported under.
+
+@param args.validators_symbol
+Symbol the generated validators are imported under.
  */
 function unpack_parameter_expression(args: {
   header_field: string,
   header: (Header | Parameter) & { name: string },
   generator_common_symbol: string,
+  validators_symbol: string,
   gensym: (hint?: string) => string,
   string_formats: { [format: string]: FormatSpec },
   document: OpenAPISpec,
@@ -276,6 +280,7 @@ function unpack_parameter_expression(args: {
             ...validate_and_parse_body({
               schema: body.schema!,
               body_var: content_var,
+              validators_symbol: args.validators_symbol,
               gensym: args.gensym,
               string_formats: args.string_formats,
               document: args.document,

@@ -113,6 +113,9 @@ Symbol which the common generated library is imported under.
 
 @param args.types_symbol
 symbol which the generated types is imported under.
+
+@param args.validators_symbol
+Symbol the generated validators are imported under.
  */
 function format_operation_api_call(args: {
   op: Unlist<typeof operations>,
@@ -123,6 +126,7 @@ function format_operation_api_call(args: {
   default_security: SecurityRequirement[],
   generator_common_symbol: string,
   types_symbol: string,
+  validators_symbol: string,
 
   gensym: (hint?: string) => string,
   string_formats: { [format: string]: FormatSpec },
@@ -447,6 +451,7 @@ function format_operation_api_call(args: {
         security: security,
         generator_common_symbol: args.generator_common_symbol,
         types_symbol: args.types_symbol,
+        validators_symbol: args.validators_symbol,
 
         gensym: args.gensym,
         string_formats: args.string_formats,
@@ -474,12 +479,24 @@ Symbol which the common generated library is imported under.
 
 @param args.types_symbol
 symbol which the generated types is imported under.
+
+@param args.handler_types_symbol
+Symbol the generated handler types are imported under.
+
+@param args.validators_symbol
+Symbol the generated validators are imported under.
+
+@param args.express_symbol
+Symbol the express library is importend under.
  */
 function format_operation_as_server_endpoint_handler(args: {
   operation: Operation,
   shared_parameters: Parameter[],
   generator_common_symbol: string,
   types_symbol: string,
+  handler_types_symbol: string,
+  validators_symbol: string,
+  express_symbol: string,
 
   gensym: (hint?: string) => string,
   string_formats: { [format: string]: FormatSpec },
@@ -493,14 +510,14 @@ function format_operation_as_server_endpoint_handler(args: {
   const handler_args_var = args.gensym('handler_args')
   fragments.push(cf`
   function handle_${args.operation.operationId}(
-    ${handler_parameter_var}: handler_types.${args.operation.operationId},
-  ): (req: Request, res: Response) => Promise<void> {
+    ${handler_parameter_var}: ${args.handler_types_symbol}.${args.operation.operationId},
+  ): (req: ${args.express_symbol}.Request, res: ${args.express_symbol}.Response) => Promise<void> {
     return async (${req_var}, ${res_var}) => {`)
 
   const local_parameters = (args.operation.parameters ?? []).map(x => resolve(x, args.document))
   const all_parameters = args.shared_parameters.concat(local_parameters)
 
-  fragments.push(cf`const ${handler_args_var}: Partial<Parameters<handler_types.${args.operation.operationId}>[0]> = {};\n`)
+  fragments.push(cf`const ${handler_args_var}: Partial<Parameters<${args.handler_types_symbol}.${args.operation.operationId}>[0]> = {};\n`)
 
   for (const parameter of all_parameters) {
 
@@ -580,6 +597,7 @@ function format_operation_as_server_endpoint_handler(args: {
         header_field: name,
         header: parameter,
         generator_common_symbol: args.generator_common_symbol,
+        validators_symbol: args.validators_symbol,
 
         gensym: args.gensym,
         string_formats: args.string_formats,
@@ -616,6 +634,7 @@ function format_operation_as_server_endpoint_handler(args: {
       req_var: req_var,
       res_var: res_var,
       handler_args_var: handler_args_var,
+      validators_symbol: args.validators_symbol,
       gensym: args.gensym,
       document: args.document,
       string_formats: args.string_formats,
@@ -768,11 +787,15 @@ content type negotiation is actually renedered.
 
 @param args.types_symbol
 Symbol the generated type library is imported under.
+
+@param args.express_symbol
+Symbol the express library is importend under.
  */
 function format_operation_as_server_endpoint_handler_type(args: {
   operation: Operation,
   shared_parameters: Parameter[],
   types_symbol: string,
+  express_symbol: string,
   string_formats: { [format: string]: FormatSpec },
   document: OpenAPISpec,
 }): CodeFragment[] {
@@ -918,7 +941,7 @@ function format_operation_as_server_endpoint_handler_type(args: {
 
   return [cf`(args: `,
   ...function_parameters,
-  cf`, req: express.Request`,
+  cf`, req: ${args.express_symbol}.Request`,
   cf`) => Promise<`, ...result_fragment, cf`>`]
 }
 
@@ -1301,11 +1324,16 @@ function match_content_type<T>(
 
 
 
+/**
+@param args.validators_symbol
+Symbol the generated validators are imported under.
+ */
 function handle_request_body_payload(args: {
   body: RequestBody
   req_var: string,
   res_var: string,
   handler_args_var: string,
+  validators_symbol: string,
   gensym: (hint?: string) => string,
   string_formats: { [format: string]: FormatSpec },
   document: OpenAPISpec,
@@ -1387,6 +1415,7 @@ function handle_request_body_payload(args: {
             ...validate_and_parse_body({
               schema: content_info.schema!,
               body_var: structured_body,
+              validators_symbol: args.validators_symbol,
               gensym: args.gensym,
               string_formats: args.string_formats,
               document: args.document,

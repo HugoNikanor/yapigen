@@ -12,24 +12,35 @@ import { CodeFragment, cf } from '../code-fragment'
 import { to_ts_identifier } from '../ts-identifier'
 import { typename } from './schema'
 
-function validator_function_name(typename: string): string {
-  return to_ts_identifier(`validators.validate_${typename}`)
+
+/**
+@param args.validators_symbol
+Symbol the generated validators are imported under.
+ */
+function validator_function_name(typename: string, validators_symbol: string): string {
+  return `${validators_symbol}.validate_${to_ts_identifier(typename)}`
 }
 
+/**
+
+@param validators_symbol
+Symbol the generated validators are imported under.
+ */
 function format_type_validator(
   data: {
     type_ns: string,
     validator: string,
   },
   name: string,
+  validators_symbol: string,
   schema: Schema,
 ): CodeFragment[] {
   // TODO take `validators` as argument
   return [cf`
-  export function ${validator_function_name(name).split('.')[1]}(
+  export function validate_${to_ts_identifier(name)}(
     x: unknown
   ): x is ${data.type_ns}.${typename(name, schema)} {
-  return validators.validate_type(x, ${JSON.stringify(change_refs(schema as SchemaLike))})
+  return ${validators_symbol}.validate_type(x, ${JSON.stringify(change_refs(schema as SchemaLike))})
   }
 `]
 }

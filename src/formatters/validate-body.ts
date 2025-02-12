@@ -39,10 +39,13 @@ evaluated multiple times.
 @param args.string_formats
 @param args.document
 
+@param args.validators_symbol
+Symbol the generated validators are imported under.
  */
 function validate_and_parse_body(args: {
   schema: Schema | Reference,
   body_var: string,
+  validators_symbol: string,
   gensym: (hint?: string) => string,
   string_formats: { [format: string]: FormatSpec },
   document: OpenAPISpec,
@@ -54,12 +57,11 @@ function validate_and_parse_body(args: {
     // console.warn(args.media.schema)
     const typename = (args.schema as Reference).$ref.split('/').at(-1)!
 
-    validator = cf`${validator_function_name(typename)}(${args.body_var});\n`
+    validator = cf`${validator_function_name(typename, args.validators_symbol)}(${args.body_var});\n`
 
   } else {
     const schema = resolve(args.schema, args.document)
-    // TODO get `validators` module symbol from somewhere
-    validator = cf`validators.validate_type(${args.body_var}, ${JSON.stringify(
+    validator = cf`${args.validators_symbol}.validate_type(${args.body_var}, ${JSON.stringify(
       change_refs(schema as SchemaLike),
       (k, v) => {
         if ([
