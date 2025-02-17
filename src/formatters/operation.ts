@@ -274,13 +274,50 @@ function format_operation_api_call(args: {
   const responses = Object.entries(args.operation.responses)
   // .map(([k, v]) => [k, resolve(v, data)] as [string, Response])
 
-
-  const return_type = join_fragments(cf` | `, responses
+  /**
+  Return values where the server responded, with a message matching
+  one of those configured in the OpenAPI document.
+   */
+  const expected_return_type = join_fragments(cf` | `, responses
     .map(([status, response]) => get_return_type(
       status, response, security,
       args.types_symbol, args.string_formats, args.document)
     )
     .filter(x => x !== null))
+
+  function typ(s: string) { return [new CodeFragment(s)] }
+  function lit(s: string) { return typ(ts_string(s)) }
+
+  /**
+  Errors when something went wrong with the request.
+
+  'network' errors are always present, with 'user-cancel' and
+  'unauthenticated' being added for authenticated endpoints.
+
+  Note that errors of type 'malformed' are instead thrown as exceptions.
+   */
+  const unexpected_returns = [
+    object_to_type([
+      { name: 'error', type: lit('network') },
+
+      { name: 'server', type: typ('string') },
+      { name: 'online', type: typ('boolean'), optional: true },
+    ]),
+  ]
+
+  if (authenticated_endpoint) {
+    unexpected_returns.push(
+      object_to_type([
+        { name: 'error', type: lit('user-cancel') },
+      ]),
+      object_to_type([
+        { name: 'error', type: lit('unauthenticated') },
+        { name: 'msg', type: typ('string') },
+      ]),
+    )
+  }
+
+  const unexpected_return_type = join_fragments(cf` | `, unexpected_returns)
 
   // input to function is `parameters` and `requestBody`.
 
@@ -293,7 +330,7 @@ function format_operation_api_call(args: {
   frags.push(
     cf`export async function ${args.operation.operationId}`,
     cf`(${f_args}: `, ...object_to_type(function_args), cf`)`,
-    cf`: Promise<`, ...return_type, cf`>`,
+    cf`: Promise<`, ...expected_return_type, cf` | `, ...unexpected_return_type, cf`>`,
     cf`{\n`)
 
   const groups = all_parameters.groupBy(p => p.in)
@@ -410,7 +447,7 @@ function format_operation_api_call(args: {
   }
 
   frags.push(cf`const ${response_object} = await `,
-    ...generate_funcall(authenticated_endpoint ? 'request' : 'fetch',
+    ...generate_funcall(authenticated_endpoint ? 'request' : 'fetch_or_network_error',
       authenticated_endpoint
         ? build_query_string({
           path_template: args.path_template,
@@ -429,13 +466,42 @@ function format_operation_api_call(args: {
 
   if (authenticated_endpoint) {
     frags.push(cf`
-    if ('errtype' in ${response_object}) {
-        throw new InternalRequestError({
-            msg: ${response_object}.msg,
-            errtype: ${response_object}.errtype,
-            from: ${response_object}.from,
-        })
+    if ('error' in ${response_object}) {
+        switch (${response_object}.error) {
+            case "user-cancel":
+                return {
+                    error: 'user-cancel',
+                }
+            case "unauthenticated":
+                return {
+                    error: 'unauthenticated',
+                    msg: ${response_object}.msg,
+                }
+            case "network":
+                return {
+                    error: 'network',
+                    server: ${response_object}.server,
+                    online: ${response_object}.online,
+                }
+            case "malformed":
+                throw new APIMalformedError(${response_object}.msg)
+            default:
+                assertUnreachable(${response_object})
+        }
     }\n`)
+  } else {
+    // TODO maybe fill out the server field
+    frags.push(cf`if ('error' in ${response_object}) {
+    switch (${response_object}.error) {
+        case 'network':
+            return {
+                error: 'network',
+                server: '',
+                online: navigator.onLine,
+            }
+        default:
+            assertUnreachable(${response_object}.error)
+    }}\n`)
   }
 
   frags.push(...generate_switch(
@@ -459,7 +525,7 @@ function format_operation_api_call(args: {
     }).concat([
       new CodeFragment(
         `default:
-        throw new UnknownStatusCode("Unknown HTTP status code: " + ${response_object}.status)\n`)
+        throw new APIMalformedError("Unknown HTTP status code: " + ${response_object}.status)\n`)
     ])))
 
   frags.push(cf`}`) /* end function declaration */
@@ -614,7 +680,7 @@ function format_operation_as_server_endpoint_handler(args: {
             .send('Failed parsing body\\n' + e.message)
           return
         }
-        if (e.name === 'InvalidData') {
+        if (e.name === 'APIMalformedError') {
           ${res_var}.status(400)
             .type('text')
             .send(\`Invalid object in \${(e as any).location}\\n\${(e as any).message}\`)
@@ -729,6 +795,7 @@ function format_operation_as_server_endpoint_handler(args: {
       }
 
 
+      // TODO allow for async functions here.
       fragments.push(
         cf`${res_var}.format(`,
         ...map_to_ts_object(
@@ -1443,7 +1510,7 @@ function handle_request_body_payload(args: {
             .send('Failed parsing body as ${content_type.join('/')}: ' + e.message)
           return
         }
-        if (e.name === 'InvalidData') {
+        if (e.name === 'APIMalformedError') {
           ${args.res_var}.status(400)
             .type('text')
             .send(\`Invalid object in \${(e as any).location}\\n\${(e as any).message}\`)

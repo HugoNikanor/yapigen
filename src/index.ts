@@ -163,7 +163,7 @@ async function main(): Promise<number> {
 
         const lines = []
         lines.push(
-          cf`import { InvalidData } from ${ts_string(get_import_path(self, configuration.output.common))}; \n`,
+          cf`import { APIMalformedError } from ${ts_string(get_import_path(self, configuration.output.common))}; \n`,
           import_star({
             as: type_ns,
             from: get_import_path(self, configuration.output.types),
@@ -180,7 +180,7 @@ async function main(): Promise<number> {
           cf`const ${validator_symbol} = new ${schema_validator_symbol};\n`,
           cf`
 /**
-@throws InvalidData
+@throws APIMalformedError
  */
 export function validate_type(
   body: unknown,
@@ -188,7 +188,7 @@ export function validate_type(
 ): true {
   const result = ${validator_symbol}.validate(body, schema)
   if (!result.valid) {
-    throw new InvalidData('body',
+    throw new APIMalformedError(
       result.errors.map((err) => {
         const path = err.path.map(s => '/' + String(s)).join('')
         return \`Object at "#\${path}" \${err.message}.\\nGot \${JSON.stringify(err.instance)}.\`
@@ -237,10 +237,7 @@ ${validator_symbol}.addSchema(
       content: [
 
         cf`import {
-            UnknownStatusCode,
-            UnknownContentType,
-            InvalidData,
-            InternalRequestError,
+            APIMalformedError,
         } from ${ts_string(get_import_path(self, configuration.output.common))};\n`,
 
         import_star({

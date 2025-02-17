@@ -109,7 +109,7 @@ function format_response(args: {
         cf`(() => {
         const ${header_var} = ${args.response_object}.headers.get(${ts_string(header.name)});`,
 
-        cf`if (! ${header_var}) { throw new InvalidData('header', `,
+        cf`if (! ${header_var}) { throw new APIMalformedError(`,
         new CodeFragment(ts_string(`Required header "${header.name}" absent from response.`)),
         cf`);}\n`,
 
@@ -206,7 +206,7 @@ function format_response(args: {
       frags.push(cf`};\n`) // end case
     }
     frags.push(new CodeFragment(
-      `default: throw new UnknownContentType("Unknown Content Type: " + ${content_type_var})`))
+      `default: throw new APIMalformedError("Unknown Content Type: " + ${content_type_var})`))
     frags.push(cf`}\n`) // end switch mimetype
 
   } else {

@@ -58,7 +58,38 @@ provided by Todo 3.0. Unfortunately, Todo 3.0 isn't yet published.
 
 **TODO** update to actually link to Todo 3.0's `request` system.
 
+###### Error Handling
+The generated API wrappers will return an object to the caller if
+everything went as expected, meaning any response noted in the OpenAPI
+specification (including bad responses), or if a "recoverable" error
+was found.  Recoverable errors includes: failure to authenticate,
+authentication canceled, and network errors. In all other cases, the
+procedure throws `APIMalformedError`, containing a human readable text
+noting what went wrong.
+
+The idea of splitting errors between the return channel and the error
+channel is to differentiate between "recoverable" and "irrecoverable"
+errors. For example, if the server returns unexpected data, then it's
+better to fail fast than to work no the (possibly) invalid data, which
+could lead to much bigger problems down the line, and instead prompt
+the user to check the version and configuration of both the server and
+client.
+
+The calls will throw in the following situations:
+- An authentication call was "malformed"
+- Required response headers are missing
+- Response body is of unknown content type
+- Response body is malformed<sup id="return2">[2](#footnote2)</sup>
+- Unknown response status code
+
+If the client gets a configures response it can't handle (for example,
+a 400 or 5xx response), it can manually import `APIMalformedError`
+from the generated [`common`](#common) file. The reason these
+responses don't automatically throw is to account for cases to complex
+for OpenAPI to handle, such as two mutually exclusive query parameters.
+
 ##### Server Code
+
 The server expects [Node Express](https://expressjs.com/). Porting this to a
 different server implementation shouldn't be to hard. Pull requests welcome :).
 
@@ -380,7 +411,10 @@ linters and compilers, to ensure it's well formed.
 
 **Footnotes**
 
-<a name="footnote1">1</a>:  Note that the image isn't automatically generated
-from the source code, and may therefore be out of date.  [⮌](#return1)
+<a name="footnote1">1</a>: Note that the image isn't automatically generated
+from the source code, and may therefore be out of date. [⮌](#return1)
+
+<a name="footnote2">2</a>: If any strings with `format` specifiers are
+present, exact behavior is still unspecified. [⮌](#return2)
 
 [prettier]: https://prettier.io

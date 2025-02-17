@@ -616,7 +616,13 @@ function schema_to_serializer_or_parser(
         }
       }
 
-      parts.push(cf`throw new Error`)
+      // NOTE this does NOT throw APIMalformedError, since that error
+      // is (currently) only available on the front-end, but this code
+      // is also inserted in the routers.
+      // TODO improve error message
+      parts.push(cf`throw new Error(
+      'Failed parsing field as any of the configured string formats.'
+      )`)
 
       parts.push(cf`})()`)
 

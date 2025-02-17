@@ -133,8 +133,8 @@ function unpack_parameter_expression(args: {
       const enumv = JSON.stringify(schema.enum!)
       fragments.push(cf`
       if (!${enumv}.includes(${normalized})) {
-        throw new ${args.generator_common_symbol}.InvalidData(
-            'header', ${hname} + ' not in ' + ${enumv})
+        throw new ${args.generator_common_symbol}.APIMalformedError(
+            ${hname} + ' not in ' + ${enumv})
         }\n`)
       return_type_override = `${args.generator_common_symbol}.Unlist<${enumv}>`
     }
@@ -143,14 +143,14 @@ function unpack_parameter_expression(args: {
       const constv = JSON.stringify(schema.const!)
       fragments.push(cf`
       if (${constv} !== ${normalized}) {
-        throw new ${args.generator_common_symbol}.InvalidData(
-        'header', ${hname} + " !== " + ${constv})
+        throw new ${args.generator_common_symbol}.APIMalformedError(
+        ${hname} + " !== " + ${constv})
       }\n`)
       return_type_override = constv
     }
 
     /**
-    Return a code fragment which checks if the test failed, and if so throws InvalidData.
+    Return a code fragment which checks if the test failed, and if so throws APIMalformedError
 
     @param test
     A code fragment which evaluates to true if the passes the validation.
@@ -162,7 +162,7 @@ function unpack_parameter_expression(args: {
     function validator(test: CodeFragment, response: CodeFragment): CodeFragment[] {
       return [
         cf`if (!(`, test, cf`)) {
-        throw new ${args.generator_common_symbol}.InvalidData('header',`,
+        throw new ${args.generator_common_symbol}.APIMalformedError(`,
         response,
         cf`)}\n`
       ]

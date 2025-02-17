@@ -17,7 +17,7 @@ import { resolve } from '../json-pointer'
 
 /**
 Return a TypeScript fragment (as a string) consisting of a single expression, which
-- validates a json object against a schema, and throws InvalidData on failure.
+- validates a json object against a schema, and throws APIMalformedError on failure.
 - evaluates to a parsed version of the body, with specific fields
   (like date-time fields) expanded into their internal
   representations.

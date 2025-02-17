@@ -50,3 +50,23 @@ function url_concat(base: string, path: string): URL {
 
   return new URL(path, base + '/')
 }
+
+// Copied from everywhere
+function assertUnreachable(x: never): never {
+  throw new Error(`Getting here should be impossible: ${JSON.stringify(x)}`)
+}
+
+const fetch_or_network_error
+  : (...args: Parameters<typeof fetch>)
+    => Promise<{ error: 'network' } | Awaited<ReturnType<typeof fetch>>>
+  = async (...args) => {
+    try {
+      return await fetch(...args)
+    } catch (e: unknown) {
+      if (!(e instanceof Error)) throw e
+      if (e.name !== 'TypeError') throw e
+      return {
+        error: 'network',
+      }
+    }
+  }
