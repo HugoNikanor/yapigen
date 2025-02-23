@@ -4,7 +4,7 @@ import * as YAML from 'yaml'
 import * as fs from 'node:fs/promises'
 import * as path from 'node:path'
 import * as prettier from 'prettier'
-import type { OutputEntry } from './configuration'
+import type { OutputEntry, Configuration } from './configuration'
 import { parse_command_line } from './configuration'
 
 import type {
@@ -67,13 +67,15 @@ function import_star(args: {
 
 
 async function main(): Promise<number> {
+  const start = new Date
   const configuration = await parse_command_line()
 
   if (!configuration) return 1
 
   console.log('Continuing with configuration:', configuration)
 
-  const gensym = get_gensym(sfc32(...(configuration['gensym-seed'] ?? randseed())))
+  const gensym_seed = configuration['gensym-seed'] ?? randseed()
+  const gensym = get_gensym(sfc32(...gensym_seed))
 
   const bytes = await fs.readFile(configuration.input, 'utf8')
   // TODO pass document through jsonschema's validator, ensuring
@@ -391,7 +393,76 @@ ${validator_symbol}.addSchema(
 
   console.log()
 
+  /**
+  Write generator data.
+  This uses a relative file path, since multiple (or no) configuration
+  files might have been used, leaving us without a proper "base".
+   */
+  await write_generator_data('.yapigen', {
+    gensym_seed: gensym_seed,
+    start: start,
+    configuration: configuration,
+  })
+
   return 0
+}
+
+/**
+Write general data about the generator run.
+
+This includes a list of files, time it took to run, ...
+
+@param outpath
+Directory all files are created under.
+
+@param args.gensym_seed
+Seed used for the symbol generator.
+
+@param args.start
+Date when the generator started running. This should be a Date object
+created on program start.
+
+@param args.configuration
+Final configuration used for the generator.
+ */
+async function write_generator_data(
+  outpath: string,
+  args: {
+    gensym_seed: [number, number, number, number],
+    start: Date,
+    configuration: Configuration,
+  }) {
+  await fs.mkdir(outpath, { recursive: true })
+  {
+    const f = await fs.open(path.join(outpath, 'FILES'), "w")
+    for (const { path: output_path } of Object.values(args.configuration.output)) {
+      await f.write(path.join(process.cwd(), output_path))
+      await f.write('\n')
+    }
+    await f.close()
+  }
+
+  {
+    const end = new Date
+    const f = await fs.open(path.join(outpath, 'info.yaml'), "w")
+    await f.write(YAML.stringify({
+      gensym_seed: args.gensym_seed,
+      start: args.start.toISOString(),
+      end: end.toISOString(),
+      time: end.valueOf() - args.start.valueOf(),
+    }))
+    await f.close()
+  }
+
+  {
+    const f = await fs.open(path.join(outpath, '.gitignore'), 'w')
+    await f.write('*\n')
+    await f.close()
+  }
+
+  // Writing used configuration would be nice here. However, The
+  // configuration contains non-serializable data, meaning that it's
+  // not possible.
 }
 
 
