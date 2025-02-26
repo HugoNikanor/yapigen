@@ -419,11 +419,11 @@ function schema_to_serializer_or_parser(
 
           for (const entry of groups.get(undefined)!) {
             if ('allOf' in entry) {
-              throw new NotImplemented(`allOf inside ${schema}`)
+              throw new NotImplemented(`allOf inside ${JSON.stringify(schema)}`)
             } else if ('oneOf' in entry) {
-              throw new NotImplemented(`oneOf inside ${schema}`)
+              throw new NotImplemented(`oneOf inside ${JSON.stringify(schema)}`)
             } else if ('anyOf' in entry) {
-              throw new NotImplemented(`anyOf inside ${schema}`)
+              throw new NotImplemented(`anyOf inside ${JSON.stringify(schema)}`)
             } else {
               throw new Error(`In a oneOf switch, all clauses must have explicit types: ${JSON.stringify(entries)}`)
             }
