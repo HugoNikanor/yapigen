@@ -782,8 +782,8 @@ function format_operation_as_server_endpoint_handler(args: {
         cases.push([
           alternative.content_type,
           [
-            cf`() => {\n`,
-            cf`const ${body_var} = ${result_var}[${ctype}]();\n`,
+            cf`async () => {\n`,
+            cf`const ${body_var} = await ${result_var}[${ctype}]();\n`,
             // NOTE `Result.format` automatically adds the content
             // type header which matched. This means we can skip doing
             // it explicitly.
@@ -956,7 +956,7 @@ function format_operation_as_server_endpoint_handler_type(args: {
           case 'text/html':
             results.push({
               name: content_type,
-              type: [cf`() => string`],
+              type: [cf`() => Awaitable<string>`],
             })
             break
 
@@ -964,18 +964,19 @@ function format_operation_as_server_endpoint_handler_type(args: {
             if ('schema' in media) {
               results.push({
                 name: content_type,
-                type: [cf`() => `, ...schema_to_typescript(
+                type: [cf`() => Awaitable<`, ...schema_to_typescript(
                   resolve(media.schema!, args.document),
                   `${args.types_symbol}.`,
                   args.string_formats,
-                  args.document)
+                  args.document),
+                cf`>`,
                 ],
               })
             } else {
               // TODO TODO ensure type `Json` actually exists
               results.push({
                 name: content_type,
-                type: [cf`() => Json`],
+                type: [cf`() => Awaitable<Json>`],
               })
             }
             break
@@ -984,7 +985,7 @@ function format_operation_as_server_endpoint_handler_type(args: {
             console.warn(`Unknown content type for response: ${content_type}.`)
             results.push({
               name: content_type,
-              type: [cf`() => ArrayBuffer`],
+              type: [cf`() => Awaitable<ArrayBuffer>`],
             })
         }
       }

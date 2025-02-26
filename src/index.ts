@@ -298,6 +298,7 @@ ${validator_symbol}.addSchema(
             type: true,
           }),
           cf`import ${express_symbol} from 'express';\n`,
+          cf`type Awaitable<T> = T | Promise<T>;\n`,
           ...string_format_imports,
           ...Object.entries(document.paths)
             .flatMap(([path, body]) =>
