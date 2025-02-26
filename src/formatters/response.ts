@@ -99,38 +99,39 @@ function format_response(args: {
 
     /* Declare a struct of return headers */
     const headers_var = args.gensym('headers')
-    const return_s: CodeFragment[] = [cf`const ${headers_var}: `, ...headers_type, cf` = {`]
-    for (const header of groups.get(true /* required headers */) ?? []) {
-      const key = ts_string(header.name)
+    const return_s: CodeFragment[] = [cf`const ${headers_var}: `, ...headers_type, cf` = `,
+    ...map_to_ts_object((groups.get(true /* required headers */) ?? []).map((header) => {
       const header_var = args.gensym('header')
-      return_s.push(
-        cf`${key}:`,
+      const key = ts_string(header.name)
+      return [
+        header.name,
+        [
+          cf`(() => {
+        const ${header_var} = ${args.response_object}.headers.get(${key});`,
 
-        cf`(() => {
-        const ${header_var} = ${args.response_object}.headers.get(${ts_string(header.name)});`,
+          cf`if (! ${header_var}) { throw new APIMalformedError(`,
+          new CodeFragment(ts_string(`Required header ${key} absent from response.`)),
+          cf`);}\n`,
 
-        cf`if (! ${header_var}) { throw new APIMalformedError(`,
-        new CodeFragment(ts_string(`Required header "${header.name}" absent from response.`)),
-        cf`);}\n`,
+          cf`return `,
+          ...unpack_parameter_expression({
+            header_field: header_var,
+            header: header,
+            generator_common_symbol: args.generator_common_symbol,
+            validators_symbol: args.validators_symbol,
 
-        cf`return `,
-        ...unpack_parameter_expression({
-          header_field: header_var,
-          header: header,
-          generator_common_symbol: args.generator_common_symbol,
-          validators_symbol: args.validators_symbol,
-
-          gensym: args.gensym,
-          string_formats: args.string_formats,
-          document: args.document,
-        }
-        ),
-        cf`;\n`,
-        cf`}) ()`,
-
-      )
-    }
-    return_s.push(cf`};\n`)
+            gensym: args.gensym,
+            string_formats: args.string_formats,
+            document: args.document,
+          }
+          ),
+          cf`;\n`,
+          cf`})()`,
+        ]
+      ]
+    })),
+    cf`;\n`,
+    ]
 
     for (const header of groups.get(false /* optional headers */) ?? []) {
       const key = ts_string(header.name)
