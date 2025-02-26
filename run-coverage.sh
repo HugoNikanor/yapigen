@@ -11,7 +11,7 @@ if test -x "$npm_package_json"; then
 	exit 1
 fi
 
-outdir_common=/tmp/openapi-generator-test-output
+outdir_common=/tmp/yapigen-test-output
 OUTDIR=$outdir_common/$(date +'%FT%T')
 export OUTDIR
 
