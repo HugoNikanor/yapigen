@@ -79,6 +79,28 @@ paths:
         '401':
           description: .
 
+  /authenticated:
+    get:
+      security: [{bearerAuth: []}]
+      operationId: getAuthenticated
+      summary: >-
+        Fetches an authenticated resource
+      responses:
+        '200':
+          description: ''
+          content:
+            text/plain:
+              schema:
+                type: string
+        '401':
+          description: User is unauthenticated
+          content:
+            text/plain:
+              schema:
+                type: string
+
+
+
   /something-else:
     get:
       description: >-
