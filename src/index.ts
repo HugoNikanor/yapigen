@@ -392,6 +392,19 @@ ${validator_symbol}.addSchema(
     })
   }
 
+  {
+    if ('eslint' in configuration) {
+      await generate({
+        prettify: false,
+        generator_info: config_common.generator_info,
+        preamble_path: preamble('eslint.js'),
+        output_path: configuration.eslint!,
+        source_locations: false,
+        content: [],
+      })
+    }
+  }
+
   console.log()
 
   /**
@@ -440,6 +453,12 @@ async function write_generator_data(
       await f.write(path.join(process.cwd(), output_path))
       await f.write('\n')
     }
+
+    if (args.configuration.eslint) {
+      await f.write(path.join(process.cwd(), args.configuration.eslint))
+      await f.write('\n')
+    }
+
     await f.close()
   }
 

@@ -55,6 +55,8 @@ type Configuration = {
     server_router: OutputEntry,
   },
 
+  eslint?: string,
+
   /** Should we prettify the generated code */
   prettify?: boolean,
 
@@ -291,6 +293,12 @@ async function load_configuration_file(
     data.input = resolve_path(base_filename, data.input!)
   }
 
+  if ('eslint' in data) {
+    console.log('eslint', data.eslint)
+    data.eslint = resolve_path(base_filename, expand_vars(data.eslint!))
+    console.log('eslint', data.eslint)
+  }
+
   if ('output' in data) {
     for (const output of Object.values(data.output!)) {
       output.path = resolve_path(base_filename, expand_vars(output.path))
@@ -453,6 +461,7 @@ function self_test() {
       server_handler_types: { path: '' },
       server_router: { path: '' },
     },
+    eslint: '',
     prettify: true,
     'include-source-locations': 'mapped',
     'gensym-seed': [0, 0, 0, 0],

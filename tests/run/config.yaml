@@ -9,6 +9,8 @@ output:
   server_handler_types: {path: '/${OUTDIR}/server-handler-types.ts'}
   server_router: {path: '/${OUTDIR}/server-router.ts'}
 
+eslint: '/${OUTDIR}/eslint.config.mjs'
+
 include_source_locations: false
 
 # TODO include at least on custom string format
