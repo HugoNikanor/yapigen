@@ -391,6 +391,7 @@ function schema_to_serializer_or_parser(
             } else {
               parts.push(cf`return ${x}`)
             }
+            parts.push(cf`;\n`)
           }
         } else {
           for (const ref of options) {
@@ -403,12 +404,14 @@ function schema_to_serializer_or_parser(
             if (part) {
               parts.push(cf`return `, ...part)
             } else {
-              parts.push(cf`return ${x};\n`)
+              parts.push(cf`return ${x}`)
             }
+            parts.push(cf`;\n`)
           }
         }
         parts.push(cf`}`)
       } else {
+
         const entries = options.map(
           (e) => '$ref' in e ? resolve(e, document) : e)
 
