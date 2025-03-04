@@ -422,6 +422,10 @@ function schema_to_serializer_or_parser(
 
           for (const entry of groups.get(undefined)!) {
             if ('allOf' in entry) {
+              // TODO this is the one we need to implement.
+              // Basic idea is to
+              // - take all entries of enstry.allOf, // and merge them into one big object.
+              // - Later parts get priority
               throw new NotImplemented(`allOf inside ${JSON.stringify(schema)}`)
             } else if ('oneOf' in entry) {
               throw new NotImplemented(`oneOf inside ${JSON.stringify(schema)}`)
