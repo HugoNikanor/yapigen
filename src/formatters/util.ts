@@ -33,6 +33,7 @@ type ObjectField = {
 }
 
 function object_to_type(o: ObjectField[]): CodeFragment[] {
+  if (o.length === 0) return [cf`Record<never, never>`]
 
   const body: CodeFragment[][] = o.map(({ name, type, optional, raw }) => [
     new CodeFragment(`${raw ? name : ts_string(name)}${optional === true ? '?' : ''}:`),
