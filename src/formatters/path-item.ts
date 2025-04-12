@@ -241,8 +241,12 @@ function format_path_item_setup_server_router(
   const fragments: CodeFragment[] = []
 
   const handler_args_var = gensym('handlers')
+  const args_var = gensym('args')
 
-  fragments.push(cf`export function setup_router(${handler_args_var}: `)
+  fragments.push(cf`
+  export function setup_router(
+    ${args_var}: { on_error: (x: unknown) => void },
+    ${handler_args_var}: `)
 
   fragments.push(...object_to_type(
     Object.entries(paths).map(([path, item]) => ({
@@ -270,7 +274,7 @@ function format_path_item_setup_server_router(
         const [fixed_path, _] = parse_uri_path(path, s => `:${s}`)
 
         fragments.push(
-          cf`${router_var}.${op}(${fixed_path}, handle_${opid}(${handler_args_var}[${ts_string(path)}].${op}));\n`)
+          cf`${router_var}.${op}(${fixed_path}, handle_${opid}(${args_var}.on_error, ${handler_args_var}[${ts_string(path)}].${op}));\n`)
       }
     }
   }

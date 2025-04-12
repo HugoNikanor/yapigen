@@ -574,11 +574,15 @@ function format_operation_as_server_endpoint_handler(args: {
   const res_var = args.gensym('res')
   const handler_parameter_var = args.gensym('handler')
   const handler_args_var = args.gensym('handler_args')
+  const on_exception_var = args.gensym('on_exception')
   fragments.push(cf`
   function handle_${args.operation.operationId}(
+    ${on_exception_var}: (x: unknown) => void,
     ${handler_parameter_var}: ${args.handler_types_symbol}.${args.operation.operationId},
   ): (req: ${args.express_symbol}.Request, res: ${args.express_symbol}.Response) => Promise<void> {
-    return async (${req_var}, ${res_var}) => {`)
+    return async (${req_var}, ${res_var}) => {
+        try {
+`)
 
   const local_parameters = (args.operation.parameters ?? []).map(x => resolve(x, args.document))
   const all_parameters = args.shared_parameters.concat(local_parameters)
@@ -821,7 +825,19 @@ function format_operation_as_server_endpoint_handler(args: {
 
   fragments.push(cf`}\n`) /* end switch (result.status) */
 
-  fragments.push(cf`}}`)
+  fragments.push(cf`} catch (e: unknown) {
+    ${on_exception_var}(e);
+    ${res_var}
+    .status(500)
+    .type('text')
+    .send(\`INTERNAL SERVER ERROR: \${e}\\n\`);
+  }`)
+
+  fragments.push(
+    /* End inner function */
+    cf`}`,
+    /* End outer function */
+    cf`}`)
   return fragments
 }
 
