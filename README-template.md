@@ -70,7 +70,7 @@ noting what went wrong.
 The idea of splitting errors between the return channel and the error
 channel is to differentiate between "recoverable" and "irrecoverable"
 errors. For example, if the server returns unexpected data, then it's
-better to fail fast than to work no the (possibly) invalid data, which
+better to fail fast than to work on the (possibly) invalid data, which
 could lead to much bigger problems down the line, and instead prompt
 the user to check the version and configuration of both the server and
 client.
@@ -82,8 +82,8 @@ The calls will throw in the following situations:
 - Response body is malformed<sup id="return2">[2](#footnote2)</sup>
 - Unknown response status code
 
-If the client gets a configures response it can't handle (for example,
-a 400 or 5xx response), it can manually import `APIMalformedError`
+If the user code can't gracefully handle a given response (for example,
+a 400 or 5xx response), it may manually import `APIMalformedError`
 from the generated [`common`](#common) file. The reason these
 responses don't automatically throw is to account for cases to complex
 for OpenAPI to handle, such as two mutually exclusive query parameters.
