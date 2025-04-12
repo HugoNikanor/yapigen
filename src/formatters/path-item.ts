@@ -244,6 +244,30 @@ function format_path_item_setup_server_router(
   const args_var = gensym('args')
 
   fragments.push(cf`
+  /**
+Construct a Node Express router.
+
+@param ${args_var}.on_error
+Called when any "unhandled" error is thrown in the route, regardless
+of if it came from the generated, or user suplied, code. If this
+function returns, then the error will be passed to the client, in an
+HTTP 500 response.
+
+@param ${handler_args_var}
+Handlers for each router declared in the OpenAPI file.
+
+@example
+\`\`\`typescript
+app.use('/', setup_router({
+  on_error: console.error,
+}, {
+  '/{id}': {
+      get: getEntry,
+      put: putEntry,
+  },
+})
+\`\`\`
+  */
   export function setup_router(
     ${args_var}: { on_error: (x: unknown) => void },
     ${handler_args_var}: `)
