@@ -1,6 +1,6 @@
 {
   "name": "yapigen",
-  "version": "0.2.2-alpha",
+  "version": "0.2.2",
   "description": "OpenAPI to TypeScript code generator.",
   "keywords": [
     "openapi",
