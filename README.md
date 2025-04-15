@@ -31,6 +31,8 @@ server.
     - [Generated Source Files](#generated-source-files)
     - [Testing](#testing)
 
+[![NPM](https://nodei.co/npm/yapigen.png)](https://nodei.co/npm/yapigen/)
+
 Usage
 -----
 

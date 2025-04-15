@@ -6,6 +6,8 @@ server.
 
 <!-- TOC_PLACEHOLDER -->
 
+[![NPM](https://nodei.co/npm/yapigen.png)](https://nodei.co/npm/yapigen/)
+
 Usage
 -----
 
