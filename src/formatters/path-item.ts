@@ -258,6 +258,8 @@ Handlers for each router declared in the OpenAPI file.
 
 @example
 \`\`\`typescript
+import { getEntry, putEntry } from './handlers'
+
 app.use('/', setup_router({
   on_error: console.error,
 }, {
