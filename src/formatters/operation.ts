@@ -357,7 +357,7 @@ function format_operation_api_call(args: {
     for (const parameter of query_parameters.values()) {
       const key = ts_string(parameter.name)
       if (!parameter.required)
-        frags.push(cf`if (${key} in ${f_args}.params) {`)
+        frags.push(cf`if (${key} in ${f_args}.params && ${f_args}.params[${key}] !== undefined) {`)
 
       const pair_var = args.gensym('pair')
       frags.push(
