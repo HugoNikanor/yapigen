@@ -236,6 +236,18 @@ Seed for symbol generator. Takes an array of 4 32-bit integers (meaning that
 more significant bits than that will most likely be removed. Integers in
 Javascript are weird).
 
+#### `standalone`
+Set of extra files to generate, which allows generation of a
+standalone project. Mostly used for simple tests, or as a jump-off
+point for new projects.
+
+Takes the following keywords, which each specify the target filename.
+
+- `eslint` - eslint configuration.
+- `package` - package.json. Also acts as reference for runtime dependencies.
+- `tsconfig` - tsconfig, allows project to build by itself.
+
+
 #### `string_formats`
 Extra [string formats](#string-formats). A mapping from names to format
 specifiers, where each specifier is an object with the following parameters:
