@@ -347,7 +347,11 @@ function format_operation_api_call(args: {
 
   const path_parameters = groups.get('path')
   if (path_parameters) {
-    /* All these are guaranteed to be required, so doen't even bother checking */
+    /*
+    path_parameters are required to be marked as required, so we
+    implicitly treat them as such instead of actually checking the
+    flag.
+     */
     frags.push(
       cf`const ${args.parameters_object} = `,
       ...params_to_object(
@@ -456,6 +460,7 @@ function format_operation_api_call(args: {
   }
 
   frags.push(cf`const ${response_object} = await `,
+    // TODO get the two functions through proper imports
     ...generate_funcall(authenticated_endpoint ? 'request' : 'fetch_or_network_error',
       authenticated_endpoint
         ? build_query_string({

@@ -424,7 +424,7 @@ ${validator_symbol}.addSchema(
 /**
 Write general data about the generator run.
 
-This includes a list of files, time it took to run, ...
+This includes a list of files, time it took to run, etc...
 
 @param outpath
 Directory all files are created under.
@@ -449,6 +449,7 @@ async function write_generator_data(
   await fs.mkdir(outpath, { recursive: true })
   {
     const f = await fs.open(path.join(outpath, 'FILES'), "w")
+    /* Include all "regular" source files */
     for (const { path: output_path } of Object.values(args.configuration.output)) {
       await f.write(path.join(process.cwd(), output_path))
       await f.write('\n')
