@@ -19,7 +19,7 @@ import { to_ts_identifier } from './ts-identifier'
 import { NotImplemented } from './not-implemented'
 
 import type { FormatSpec } from './json-schema-formats'
-import { assertUnreachable } from './unreachable'
+import { assertUnreachable } from '@todo-3.0/lib/unreachable'
 
 import type { ObjectField } from './formatters/util'
 import { CodeFragment, cf, join_fragments } from './code-fragment'

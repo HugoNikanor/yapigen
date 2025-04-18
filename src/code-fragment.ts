@@ -11,7 +11,7 @@ import {
   find_source_location,
   find_and_get_source_map,
 } from './source-map'
-import { assertUnreachable } from './unreachable'
+import { assertUnreachable } from '@todo-3.0/lib/unreachable'
 
 /**
 Representations of fragments of code.

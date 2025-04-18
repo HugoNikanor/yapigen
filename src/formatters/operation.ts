@@ -39,7 +39,7 @@ import {
   pack_parameter_expression,
 } from './headers-and-parameters'
 import { CodeFragment, cf, join_fragments } from '../code-fragment'
-import { assertUnreachable } from '../unreachable'
+import { assertUnreachable } from '@todo-3.0/lib/unreachable'
 import type { FormatSpec } from '../json-schema-formats'
 import { validate_and_parse_body } from './validate-body'
 import { is_authenticated } from './authentication'

@@ -1,8 +1,8 @@
 export {
   APIMalformedError,
-  Unlist,
 }
 
+export { Unlist } from '@todo-3.0/lib/unlist'
 
 class APIMalformedError extends Error {
   constructor(message: string) {
@@ -10,7 +10,3 @@ class APIMalformedError extends Error {
     this.name = 'APIMalformedError'
   }
 }
-
-type Unlist<T> = T extends readonly [infer First, ...infer Rest]
-  ? First | Unlist<Rest>
-  : never

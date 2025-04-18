@@ -15,10 +15,8 @@ export {
 import { decode as vlq_decode } from 'vlq'
 import type { Schema } from './openapi'
 
-import {
-  zip,
-  accumulate,
-} from './util'
+import { zip } from '@todo-3.0/lib/util'
+import { accumulate } from './util'
 
 type FragmentInfo = {
   /* Index of first character of fragment in generated text */

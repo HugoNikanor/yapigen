@@ -5,7 +5,7 @@ export {
 }
 
 import { ts_string } from './formatters/util'
-import { isObject } from './util'
+import { isObject } from '@todo-3.0/lib/util'
 
 type FormatSpec = {
   /** Function for returning a TypeScript fragment for parsing a

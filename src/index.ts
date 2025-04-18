@@ -29,7 +29,9 @@ import * as crypto from 'node:crypto'
 
 
 function preamble(f: string) {
-  return path.join(__dirname, '..', 'preambles', f)
+  const filename = new URL(import.meta.url).pathname
+  return path.join(path.dirname(filename),
+    '..', 'preambles', f)
 }
 
 

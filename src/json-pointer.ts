@@ -5,8 +5,8 @@ import type {
   Reference,
 } from './openapi'
 
-import type { Json } from './json'
-import { isObject } from './util'
+import type { Json } from '@todo-3.0/lib/json'
+import { isObject } from '@todo-3.0/lib/util'
 
 /**
 Very basic json pointer library. Only supports absolute pointers, and

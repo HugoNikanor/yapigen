@@ -1,9 +1,7 @@
 export {
   intersperse,
   concat,
-  zip,
   accumulate,
-  isObject,
 }
 
 function intersperse<T>(el: T, lst: T[]): T[] {
@@ -19,25 +17,6 @@ function concat<T>(lst: T[][]): T[] {
   return lst.flatMap(x => x)
 }
 
-
-/**
-"Zips" two lists inco one list of pairs.
-
-If the lists are of the same length, then
-`result[i][0] === l1[i] && result[i][1] === l2[i]`
-will always be true.
-
-If the lists are of different lengths, then the resulting list will
-only be as long as the shortest of the input lists.
- */
-function zip<T, V>(l1: T[], l2: V[]): [T, V][] {
-  const result: [T, V][] = []
-  for (let i = 0; i < Math.min(l1.length, l2.length); i++) {
-    result.push([l1[i], l2[i]])
-  }
-  return result
-}
-
 /**
 Accumulate a list of differences, into a list of numbers
  */
@@ -49,18 +28,4 @@ function accumulate(l: number[]): number[] {
     result.push(current)
   }
   return result
-}
-
-
-/**
-Checks if object is a non-null JavaScript object, which also isn't an
-array.
- */
-function isObject<K extends string | number | symbol>(
-  x: unknown,
-): x is (Record<K, unknown> & { length?: never }) {
-  if (x === null) return false
-  if (typeof x !== 'object') return false
-  if (Array.isArray(x)) return false
-  return true
 }

@@ -5,7 +5,6 @@ import {
 } from '../../src/formatters/util'
 
 import {
-  zip,
   accumulate,
 } from '../../src/util'
 
@@ -15,31 +14,6 @@ describe('parse_uri_path', () => {
       '/entry/{id}/completed',
       (s) => `[${s}]`)
     ).to.deep.equal(['`/entry/[id]/completed`', ['id']])
-  })
-})
-
-
-
-describe('zip', () => {
-  it('Should zip lists of equal lengths', () => {
-    expect(zip([1, 2, 3, 4, 5], "Hello".split('')))
-      .to.deep.equal([
-        [1, 'H'],
-        [2, 'e'],
-        [3, 'l'],
-        [4, 'l'],
-        [5, 'o'],
-      ])
-  })
-
-  it('Should work with a shorter left list', () => {
-    expect(zip([0], 'Hello'.split('')))
-      .to.deep.equal([[0, 'H']])
-  })
-
-  it('Should work with a shorter right list', () => {
-    expect(zip('Hello'.split(''), [0]))
-      .to.deep.equal([['H', 0]])
   })
 })
 
