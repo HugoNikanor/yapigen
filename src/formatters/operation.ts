@@ -149,6 +149,10 @@ function format_operation_api_call(args: {
   /** Arguments to pass along to the inner `request` call */
   const request_args = new Map<string, CodeFragment[]>
 
+  const jwt_payload_var = args.gensym('JWTPayload')
+  const refresh_payload_var = args.gensym('RefreshPayload')
+  const account_var = args.gensym('Account')
+
   /** Parts of the request header.
   Each element should evaluate to an record from header names to header values.
   In the final request, these will be joined into one complete record.
@@ -161,10 +165,18 @@ function format_operation_api_call(args: {
 
   if (authenticated_endpoint) {
     function_args.push(
-      { name: 'save_refresh', type: [cf`SaveRefreshCB`] },
-      { name: 'authenticator', type: [cf`Authenticator`] },
-      { name: 'account', type: [cf`Account`] },
+      { name: 'save_refresh', type: [cf`SaveRefreshCB<${jwt_payload_var}, ${refresh_payload_var}, ${account_var}>`] },
+      { name: 'authenticator', type: [cf`Authenticator<${jwt_payload_var}, ${refresh_payload_var}>`] },
+      { name: 'account', type: [cf`${account_var}`] },
       { name: 'login_headers', type: [cf`Record<string, string>`], optional: true },
+
+      // TODO get this symbol explicitly
+      { name: 'refresh_function', type: [cf`RefreshFunction`] },
+
+      // TODO should these two be imported from '@todo-3.0/request'?
+      // TODO If we keep this, get type `Json` explicitly
+      { name: 'parse_jwt_payload', type: [cf`(data: string) => ${jwt_payload_var}`] },
+      { name: 'serialize_jwt_payload', type: [cf`(payload: ${jwt_payload_var}) => Record<string, Json>`] },
     )
 
     request_args.set('save_refresh', [cf`${f_args}.save_refresh`])
@@ -172,6 +184,10 @@ function format_operation_api_call(args: {
     request_args.set('authenticator', [cf`${f_args}.authenticator`])
 
     request_args.set('login_headers', [cf`{...${f_args}.login_headers ?? {}}`])
+
+    request_args.set('refresh_function', [cf`${f_args}.refresh_function`])
+    request_args.set('parse_jwt_payload', [cf`${f_args}.parse_jwt_payload`])
+    request_args.set('serialize_jwt_payload', [cf`${f_args}.serialize_jwt_payload`])
   } else {
     /* For authorized calls, we get the server from the account.
     But since we don't have an account, we need to pass the server manually.
@@ -337,7 +353,11 @@ function format_operation_api_call(args: {
   }
 
   frags.push(
-    cf`export async function ${args.operation.operationId}`,
+    cf`export async function ${args.operation.operationId}<
+        ${jwt_payload_var}     extends { [key: string]: unknown },
+        ${refresh_payload_var} extends { [key: string]: unknown },
+        ${account_var} extends BaseAccount<${jwt_payload_var}, ${refresh_payload_var}>,
+    >`,
     cf`(${f_args}: `, ...object_to_type(function_args), cf`)`,
     cf`: Promise<`, ...expected_return_type, cf` | `, ...unexpected_return_type, cf`>`,
     cf`{\n`)
