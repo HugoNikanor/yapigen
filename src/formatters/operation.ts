@@ -327,6 +327,15 @@ function format_operation_api_call(args: {
     type: object_to_type(parameters)
   })
 
+  if (!args.operation.operationId) {
+    // TODO? give JSON path/poiner to "here". This would require "all"
+    // calls to take the path to the (sub) object being operated on,
+    // but would allow much better error messages on malformed
+    // schemas. For example `/paths/~1something-else/get`
+    throw new Error('Operation without operationId found: '
+      + JSON.stringify(args.operation))
+  }
+
   frags.push(
     cf`export async function ${args.operation.operationId}`,
     cf`(${f_args}: `, ...object_to_type(function_args), cf`)`,

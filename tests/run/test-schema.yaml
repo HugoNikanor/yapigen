@@ -103,6 +103,7 @@ paths:
 
   /something-else:
     get:
+      operationId: 'getSomethingElse'
       description: >-
         Endpoint with no headers
       responses:
