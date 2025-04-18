@@ -6,6 +6,8 @@ import {
 
 import {
   accumulate,
+  concat,
+  intersperse,
 } from '../../src/util'
 
 describe('parse_uri_path', () => {
@@ -23,5 +25,29 @@ describe('accumulate', () => {
   })
   it('should handle starting at not 0', () => {
     expect(accumulate([5, 15, 10])).to.deep.equal([5, 20, 30])
+  })
+})
+
+describe('concat', () => {
+  it('should concat a list of lists into a flat list', () => {
+    expect(concat([[1, 2], [3, 4]]))
+      .to.deep.equal([1, 2, 3, 4])
+  })
+
+  it('Should not flatten sub-sub lists', () => {
+    expect(concat([[[1]], [2]] as (number | number[])[][]))
+      .to.deep.equal([[1], 2])
+  })
+})
+
+describe('intersperse', () => {
+  it('Should insert an element BETWEEN every element', () => {
+    expect(intersperse(0, [1, 2, 3]))
+      .to.deep.equal([1, 0, 2, 0, 3])
+  })
+
+  it('Should do nothing for singleton lists', () => {
+    expect(intersperse(0, [1]))
+      .to.deep.equal([1])
   })
 })

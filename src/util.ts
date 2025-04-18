@@ -4,6 +4,9 @@ export {
   accumulate,
 }
 
+/**
+Intersperse a given element between every item in a list.
+ */
 function intersperse<T>(el: T, lst: T[]): T[] {
   if (lst.length === 0) return []
   const result: T[] = [lst[0]]
@@ -13,6 +16,15 @@ function intersperse<T>(el: T, lst: T[]): T[] {
   return result
 }
 
+/**
+Flattens a nested list one step.
+
+@example
+```
+concat([[1, 2], [3, 4]])
+⇒ [1, 2, 3, 4]
+```
+ */
 function concat<T>(lst: T[][]): T[] {
   return lst.flatMap(x => x)
 }
