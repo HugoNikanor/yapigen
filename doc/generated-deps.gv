@@ -24,7 +24,7 @@ subgraph cluster_1 {
 subgraph cluster_3 {
 	label="External Dependencies"
 	node [shape="rectangle"]
-	todo_3 [label="Todo-3.0"] // TODO href
+	todo_3 [label="Todo-3.0", href="https://npmjs.com/package/@todo-3.0/request"]
 	expressjs [label="Node Express", href="https://expressjs.com/"]
 	jsonschema [href="https://github.com/tdegrunt/jsonschema#readme"]
 }

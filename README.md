@@ -5,31 +5,32 @@ YAPIgen
 Yet Another (Open)API generator, targeting TypeScript on both client and
 server.
 
-  - [Usage](#usage)
-    - [Generated Code](#generated-code)
-  - [Configuration](#configuration)
-    - [Command Line Arguments](#command-line-arguments)
-    - [Configuration File Format](#configuration-file-format)
-  - [String Formats](#string-formats)
-  - [Supported Extensions](#supported-extensions)
-    - [x-isFlag](#x-isflag)
-  - [Deviations from the Standard](#deviations-from-the-standard)
-    - [Content-Type handling](#content-type-handling)
-  - [Known Limitations and Problems](#known-limitations-and-problems)
-    - [Generated Error Responses from the
-      Server](#generated-error-responses-from-the-server)
-    - [No support for multi-file
-      schemas](#no-support-for-multi-file-schemas)
-    - [Handling of
-      `additionalProperties`](#handling-of-additionalproperties)
-    - [Limited Handling of
-      `securitySchema`](#limited-handling-of-securityschema)
-    - [Partial Generation](#partial-generation)
-    - [Alternative Content Types](#alternative-content-types)
-  - [Licensing](#licensing)
-  - [Development](#development)
-    - [Generated Source Files](#generated-source-files)
-    - [Testing](#testing)
+    -   [Usage](#usage)
+        -   [Generated Code](#generated-code)
+    -   [Configuration](#configuration)
+        -   [Command Line Arguments](#command-line-arguments)
+        -   [Configuration File Format](#configuration-file-format)
+    -   [String Formats](#string-formats)
+    -   [Supported Extensions](#supported-extensions)
+        -   [x-isFlag](#x-isflag)
+    -   [Deviations from the Standard](#deviations-from-the-standard)
+        -   [Content-Type handling](#content-type-handling)
+    -   [Known Limitations and
+        Problems](#known-limitations-and-problems)
+        -   [Generated Error Responses from the
+            Server](#generated-error-responses-from-the-server)
+        -   [No support for multi-file
+            schemas](#no-support-for-multi-file-schemas)
+        -   [Handling of
+            `additionalProperties`](#handling-of-additionalproperties)
+        -   [Limited Handling of
+            `securitySchema`](#limited-handling-of-securityschema)
+        -   [Partial Generation](#partial-generation)
+        -   [Alternative Content Types](#alternative-content-types)
+    -   [Licensing](#licensing)
+    -   [Development](#development)
+        -   [Generated Source Files](#generated-source-files)
+        -   [Testing](#testing)
 
 [![NPM](https://nodei.co/npm/yapigen.png)](https://nodei.co/npm/yapigen/)
 
@@ -80,10 +81,8 @@ Both the client and server requires
 The library is used to validate received content over the network.
 
 ##### Client Code
-The client makes all authenticated requests through the `request` interface
-provided by Todo 3.0. Unfortunately, Todo 3.0 isn't yet published.
-
-**TODO** update to actually link to Todo 3.0's `request` system.
+The client makes all authenticated requests through the
+[`request` interface provided by Todo 3.0](https://npmjs.com/package/@todo-3.0/request).
 
 ###### Error Handling
 The generated API wrappers will return an object to the caller if

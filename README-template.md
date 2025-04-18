@@ -55,10 +55,8 @@ Both the client and server requires
 The library is used to validate received content over the network.
 
 ##### Client Code
-The client makes all authenticated requests through the `request` interface
-provided by Todo 3.0. Unfortunately, Todo 3.0 isn't yet published.
-
-**TODO** update to actually link to Todo 3.0's `request` system.
+The client makes all authenticated requests through the
+[`request` interface provided by Todo 3.0](https://npmjs.com/package/@todo-3.0/request).
 
 ###### Error Handling
 The generated API wrappers will return an object to the caller if
