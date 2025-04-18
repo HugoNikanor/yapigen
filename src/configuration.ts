@@ -55,7 +55,12 @@ type Configuration = {
     server_router: OutputEntry,
   },
 
-  eslint?: string,
+  /* TODO document these */
+  standalone?: {
+    eslint?: string,
+    package?: string,
+    tsconfig?: string,
+  },
 
   /** Should we prettify the generated code */
   prettify?: boolean,
@@ -293,10 +298,18 @@ async function load_configuration_file(
     data.input = resolve_path(base_filename, data.input!)
   }
 
-  if ('eslint' in data) {
-    console.log('eslint', data.eslint)
-    data.eslint = resolve_path(base_filename, expand_vars(data.eslint!))
-    console.log('eslint', data.eslint)
+  if ('standalone' in data && data.standalone !== undefined) {
+    const x = data.standalone
+
+    if ('eslint' in x && x.eslint !== undefined) {
+      data.standalone.eslint = resolve_path(base_filename, expand_vars(x.eslint))
+    }
+    if ('package' in x && x.package !== undefined) {
+      data.standalone.package = resolve_path(base_filename, expand_vars(x.package))
+    }
+    if ('tsconfig' in x && x.tsconfig !== undefined) {
+      data.standalone.tsconfig = resolve_path(base_filename, expand_vars(x.tsconfig))
+    }
   }
 
   if ('output' in data) {
@@ -461,12 +474,16 @@ function self_test() {
       server_handler_types: { path: '' },
       server_router: { path: '' },
     },
-    eslint: '',
+    standalone: {
+      eslint: '',
+      package: '',
+      tsconfig: '',
+    },
     prettify: true,
     'include-source-locations': 'mapped',
     'gensym-seed': [0, 0, 0, 0],
     string_formats: {},
-  } satisfies Required<Configuration>
+  } satisfies Required<Configuration> /* TODO deep required */
 
   const validator = new Validator
   validator.validate(

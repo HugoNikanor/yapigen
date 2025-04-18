@@ -392,18 +392,36 @@ ${validator_symbol}.addSchema(
     })
   }
 
-  {
-    if ('eslint' in configuration) {
+
+  if ('standalone' in configuration && configuration.standalone !== undefined) {
+    const x = configuration.standalone
+    if ('eslint' in x && x.eslint !== undefined) {
       await generate({
         prettify: false,
         generator_info: config_common.generator_info,
         preamble_path: preamble('eslint.js'),
-        output_path: configuration.eslint!,
+        output_path: x.eslint,
         source_locations: false,
         content: [],
       })
     }
+
+    if ('package' in x && x.package !== undefined) {
+      const file = await fs.open(x.package, 'w')
+      await file.write(JSON.stringify(OUTPUT_PACKAGE, null, 2))
+      await file.write('\n')
+      await file.close()
+    }
+
+    if ('tsconfig' in x && x.tsconfig !== undefined) {
+      const file = await fs.open(x.tsconfig, 'w')
+      await file.write(JSON.stringify(OUTPUT_TSCONFIG, null, 2))
+      await file.write('\n')
+      await file.close()
+    }
   }
+
+
 
   console.log()
 
@@ -455,9 +473,20 @@ async function write_generator_data(
       await f.write('\n')
     }
 
-    if (args.configuration.eslint) {
-      await f.write(path.join(process.cwd(), args.configuration.eslint))
-      await f.write('\n')
+    /* Include all "weird" files */
+    if (args.configuration.standalone) {
+      if (args.configuration.standalone.eslint) {
+        await f.write(path.join(process.cwd(), args.configuration.standalone.eslint))
+        await f.write('\n')
+      }
+      if (args.configuration.standalone.package) {
+        await f.write(path.join(process.cwd(), args.configuration.standalone.package))
+        await f.write('\n')
+      }
+      if (args.configuration.standalone.tsconfig) {
+        await f.write(path.join(process.cwd(), args.configuration.standalone.tsconfig))
+        await f.write('\n')
+      }
     }
 
     await f.close()
@@ -551,4 +580,48 @@ async function generate(args: {
   }
   await outfile.close()
 
+}
+
+
+// TODO most of these dependencies should be split depending on modules used.
+const OUTPUT_PACKAGE = {
+  scripts: {
+    'build': 'tsc -b',
+    'lint': 'eslint',
+    // TODO doc?
+  },
+  dependencies: {
+    'jsonschema': '^1.4.1',
+    'express': '^4.21.1',
+    // 'express-session': '^1.18.1',
+    // TODO qs should only be required when actually used
+    'qs': '^6.14.0',
+    '@todo-3.0/request': '^0.1.0',
+    '@todo-3.0/lib': '^0.1.0',
+  },
+  devDependencies: {
+    /* Eslint */
+    'eslint': '^9.20.1',
+    'typescript-eslint': '^8.24.1',
+    '@eslint/js': '^9.20.0',
+    /* */
+    '@types/express': '^5.0.0',
+    // '@types/express-session': '^1.18.0',
+  },
+}
+
+const OUTPUT_TSCONFIG = {
+  compilerOptions: {
+    outDir: './build',
+    rootDir: '.',
+    esModuleInterop: true,
+
+    declaration: false,
+    sourceMap: false,
+    moduleResolution: 'bundler',
+    target: 'es2021',
+    module: 'es2022',
+    strict: true,
+    baseUrl: '.',
+  },
 }

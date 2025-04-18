@@ -9,7 +9,12 @@ output:
   server_handler_types: {path: '/${OUTDIR}/server-handler-types.ts'}
   server_router: {path: '/${OUTDIR}/server-router.ts'}
 
-eslint: '/${OUTDIR}/eslint.config.mjs'
+standalone:
+  eslint: '/${OUTDIR}/eslint.config.mjs'
+  package: '/${OUTDIR}/package.json'
+  tsconfig: '/${OUTDIR}/tsconfig.json'
+  # TODO typedoc
+  # TODO tsfmt
 
 include_source_locations: false
 
