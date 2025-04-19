@@ -353,11 +353,17 @@ function format_operation_api_call(args: {
   }
 
   frags.push(
-    cf`export async function ${args.operation.operationId}<
-        ${jwt_payload_var}     extends { [key: string]: unknown },
-        ${refresh_payload_var} extends { [key: string]: unknown },
-        ${account_var} extends BaseAccount<${jwt_payload_var}, ${refresh_payload_var}>,
-    >`,
+    cf`export async function ${args.operation.operationId}`)
+
+  if (authenticated_endpoint) {
+    frags.push(cf`<
+    ${jwt_payload_var}     extends { [key: string]: unknown },
+    ${refresh_payload_var} extends { [key: string]: unknown },
+    ${account_var} extends BaseAccount<${jwt_payload_var}, ${refresh_payload_var}>,
+    >`)
+  }
+
+  frags.push(
     cf`(${f_args}: `, ...object_to_type(function_args), cf`)`,
     cf`: Promise<`, ...expected_return_type, cf` | `, ...unexpected_return_type, cf`>`,
     cf`{\n`)
