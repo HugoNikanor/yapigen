@@ -201,6 +201,10 @@ function format_path_item_as_server_handler_types(args: {
   for (const op of operations) {
     const operation = args.body[op]
     if (!operation) continue
+    if (!operation.operationId) {
+      throw new Error(`Can't format operation without operationId as server handler type:\n`
+        + JSON.stringify(operation, null, 2))
+    }
     result.push(cf`export type ${operation.operationId} = `)
     result.push(...format_operation_as_server_endpoint_handler_type({
       operation: operation,
@@ -284,6 +288,10 @@ app.use('/', setup_router({
       type: object_to_type(operations.map(op => {
         const operation = item[op]
         if (!operation) return false
+        if (!operation.operationId) {
+          throw new Error(`Can't include operation without operationId in express router declaration\n`
+            + JSON.stringify(operation))
+        }
         return {
           name: op,
           type: [cf`${handler_types_symbol}.${operation.operationId}`],
@@ -301,6 +309,10 @@ app.use('/', setup_router({
       const operation = item[op]
       if (!operation) continue
       const opid = operation.operationId
+      if (!opid) {
+        throw new Error(`Can't include operation without operationId in express router declaration\n`
+          + JSON.stringify(operation, null, 2))
+      }
 
       const [fixed_path, _] = parse_uri_path(path, s => `:${s}`)
 

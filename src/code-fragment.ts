@@ -12,6 +12,7 @@ import {
   find_and_get_source_map,
 } from './source-map'
 import { assertUnreachable } from '@todo-3.0/lib/unreachable'
+import type { CountedSymbol } from './counted-symbol'
 
 /**
 Representations of fragments of code.
@@ -226,10 +227,14 @@ class CodeFragment {
 String template for generating code fragments.
 
 Contents are handled just as if a regular string fragment was used.
+
+@param args
+We forbid any complex object except CoutnedSymbol, since it's more than likely a bug.
+CountedSymbol is however kept, since it should built to be used as just another symbol.
  */
 function cf(
   template: TemplateStringsArray,
-  ...args: unknown[]
+  ...args: (string | number | boolean | CountedSymbol)[]
 ): CodeFragment {
 
   let result = template[0]

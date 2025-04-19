@@ -197,7 +197,7 @@ function unpack_parameter_expression(args: {
         }
         if ('exclusiveMinimum' in schema) {
           fragments.push(...validator(
-            cf`${normalized} > ${schema.minimum}`,
+            cf`${normalized} > ${schema.exclusiveMinimum}`,
             cf`${hname} + " <= ${schema.exclusiveMinimum}"`))
         }
 
@@ -628,9 +628,9 @@ function handle_simple_parameter(
         value, gensym, string_formats, document)
 
       if (explode) {
-        return [cf`${pairs}.map(p => p.join('=')).join(',')`]
+        return [...pairs, cf`.map(p => p.join('=')).join(',')`]
       } else {
-        return [cf`${pairs}.flatMap(x => x).join(',')`]
+        return [...pairs, cf`.flatMap(x => x).join(',')`]
       }
     }
 
@@ -705,7 +705,7 @@ function handle_form_parameter(
       if (explode) {
         return pairs
       } else {
-        return [cf`[[${key}, ${pairs}.flatMap(x => x).join(',')]]`]
+        return [cf`[[${key}, `, ...pairs, cf`.flatMap(x => x).join(',')]]`]
       }
     }
 

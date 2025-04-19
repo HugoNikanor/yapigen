@@ -620,6 +620,12 @@ function format_operation_as_server_endpoint_handler(args: {
   const handler_parameter_var = args.gensym('handler')
   const handler_args_var = args.gensym('handler_args')
   const on_exception_var = args.gensym('on_exception')
+
+  if (!args.operation.operationId) {
+    throw new Error(`Can't format Operation without operationId as server endpoint handler:\n`
+      + JSON.stringify(args.operation, null, 2))
+  }
+
   fragments.push(cf`
   function handle_${args.operation.operationId}(
     ${on_exception_var}: (x: unknown) => void,
