@@ -447,10 +447,10 @@ function format_operation_api_call(args: {
      */
     const header_parameters_var = args.gensym('header_parameters')
     frags.push(
-      cf`const ${header_parameters_var}: `, ...header_parameters_type, cf` = `,
+      cf`const ${header_parameters_var} =`,
       ...params_to_object(`${f_args}.params`, groups.get(true) ?? [],
         args.gensym, args.string_formats, args.document),
-      cf` as any;\n`
+      cf` as `, ...header_parameters_type, cf`;\n`
     )
 
     for (const parameter of groups.get(false) ?? []) {
@@ -466,7 +466,7 @@ function format_operation_api_call(args: {
         ...pack_parameter_expression(`${f_args}.params`, parameter,
           args.gensym, args.string_formats, args.document),
         cf`;
-      (${header_parameters_var} as any)[${key_var}] = ${value_var};`)
+      (${header_parameters_var})[${key_var}] = ${value_var};`)
       frags.push(cf`}`)
     }
 

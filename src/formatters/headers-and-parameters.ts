@@ -349,9 +349,9 @@ function pack_parameter_expression(
     const [[content_type, _]] = content
 
     if (content_type === 'text/plain') {
-      return [cf`[[${key}, ${param_object}[${key}]]]`]
+      return [cf`[[${key}, ${param_object}[${key}]]] as const`]
     } else if (content_type === 'application/json') {
-      return [cf`[[${key}, JSON.stringify(${param_object}[${key}])]]`]
+      return [cf`[[${key}, JSON.stringify(${param_object}[${key}])]] as const`]
     } else {
       throw new NotImplemented('Content types other than text/plain and application/json')
     }
@@ -386,7 +386,7 @@ function pack_parameter_expression(
         return [
           cf`[[${key}, `,
           ...handle_simple_parameter(schema, value, explode, gensym, string_formats, document),
-          cf`]]`
+          cf`]] as const`
         ]
 
       case 'form':
