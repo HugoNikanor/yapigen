@@ -6,6 +6,10 @@ import tseslint from "typescript-eslint";
 /** @type {import('eslint').Linter.Config[]} */
 export default [
   {files: ["src/**/*.{js,mjs,cjs,ts}"]},
+  {ignores: [
+    /* Auto-generated file */
+    'src/openapi.d.ts',
+  ]},
   {languageOptions: { globals: globals.node }},
   pluginJs.configs.recommended,
   ...tseslint.configs.recommended,

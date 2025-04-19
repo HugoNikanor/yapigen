@@ -74,7 +74,7 @@ function format_path_item_as_api_call(args: {
   // The set of parameters specified to be present in path, and the
   // set of path placeholders, MUST BE AN EXACT MATCH.
   // !PATH_PLACEHOLDER!
-  const [path_template, path_placeholders]
+  const [path_template, _path_placeholders]
     = parse_uri_path(args.path, (s) => `\${${parameters_object}[${ts_string(s)}]}`)
 
   // We assume that all parameters have unique names

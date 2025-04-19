@@ -44,16 +44,12 @@ import type { FormatSpec } from '../json-schema-formats'
 import { validate_and_parse_body } from './validate-body'
 import { is_authenticated } from './authentication'
 import type { CountedSymbol } from '../counted-symbol'
+import type { Unlist } from '@todo-3.0/lib/unlist'
 
 const operations = ['get', 'put', 'post', 'delete', 'options', 'head', 'patch', 'trace'] as const
 
-/**
-Convert a type of a list of values, to an union of all those values.
- */
-type Unlist<T> = T extends readonly [infer First, ...infer Rest]
-  ? First | Unlist<Rest>
-  : never
 
+/*
 type BadRequestCase = {
   content_type: string,
   body: () => string,
@@ -77,6 +73,7 @@ const DEFAULT_FORMAT_BAD_REQEUST: FormatBadRequest = ({
       }),
     },
   ]
+ */
 
 /**
 Format an operation for use in an API call.
@@ -1438,9 +1435,9 @@ function match_content_type<T>(
   content_type: string,
   clauses: [
     key: ContentType | NonEmpty<ContentType>,
-    proc: (content_type: ContentType) => T,
+    proc: (content_type: ContentType) => T[],
   ][],
-): T | undefined {
+): T[] {
 
   const ctype = content_type.split('/') as ContentType
 
@@ -1460,6 +1457,7 @@ function match_content_type<T>(
     }
   }
 
+  return []
 }
 
 
@@ -1608,7 +1606,7 @@ function handle_request_body_payload(args: {
         ${args.handler_args_var}.body = ${raw_body_var}
         ${args.handler_args_var}.content_type = ${args.req_var}.get('Content-Type').split(';', 1);\n`
       ]],
-    ])!)
+    ]))
 
     fragments.push(cf`} else `)
   }
