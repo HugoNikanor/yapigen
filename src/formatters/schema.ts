@@ -26,7 +26,7 @@ function format_schema(
   return [
     cf`export type ${typename(name, schema)} = `,
     ...schema_to_typescript({
-      schema, ns: '', string_formats, document
+      schema, types_symbol: false, string_formats, document
     }),
     cf`;`
   ]

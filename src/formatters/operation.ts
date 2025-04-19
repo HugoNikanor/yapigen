@@ -1033,7 +1033,7 @@ function format_operation_as_server_endpoint_handler_type(args: {
                 name: content_type,
                 type: [cf`() => Awaitable<`, ...schema_to_typescript({
                   schema: resolve(media.schema!, args.document),
-                  ns: `${args.types_symbol}.`,
+                  types_symbol: args.types_symbol,
                   string_formats: args.string_formats,
                   document: args.document,
                 }),
@@ -1115,7 +1115,7 @@ function return_body_type(
         return {
           content_type: ts_string('application/json'),
           body_type: schema_to_typescript(
-            { schema: body.schema!, ns: `${types_symbol}.`, string_formats, document }),
+            { schema: body.schema!, types_symbol, string_formats, document }),
         }
 
       default:
@@ -1336,7 +1336,7 @@ function request_body_to_serializer_input_type(args: {
   if (args.schema) {
     return schema_to_typescript({
       schema: args.schema,
-      ns: `${args.types_symbol}.`,
+      types_symbol: args.types_symbol,
       string_formats: args.string_formats,
       document: args.document,
     })

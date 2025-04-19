@@ -23,6 +23,7 @@ import { assertUnreachable } from '@todo-3.0/lib/unreachable'
 
 import type { ObjectField } from './formatters/util'
 import { CodeFragment, cf, join_fragments } from './code-fragment'
+import type { CountedSymbol } from './counted-symbol'
 
 
 function return_type_name(
@@ -84,14 +85,16 @@ Note that this does *not* include the name
 `type ${get_name(schema)} = ${schema_to_typescript(schema)}`
 ```
 
-@param args.ns
-Prefix to add to all type symbols. When declaring the symbols, this
-should be ''. When using the symbols imported though a symbol, this
-should be `${library_symbol}.`
+@param args.types_symbol
+Symbol containing the librar which imports any referenced type
+name. These appear when the OpenAPI document uses object references
+like `{$ref: '#/components/schemas/Entry}`. If the symbols are present
+in the current namespace (which should only be in the module where
+they are declared), set this to `false`.
  */
 function schema_to_typescript(args: {
   schema: Reference | Schema | boolean,
-  ns: string,
+  types_symbol: CountedSymbol | false,
   string_formats: { [format: string]: FormatSpec },
   document: OpenAPISpec,
 }): CodeFragment[] {
@@ -105,7 +108,12 @@ function schema_to_typescript(args: {
 
     if ('$ref' in schema) {
       /* We assume that it's always a reference to a schema */
-      return [cf`${args.ns}${ts_name_for_reference(schema as Reference, args.document)}`]
+      return [
+        (args.types_symbol
+          ? cf`${args.types_symbol}.`
+          : cf``),
+        cf`${ts_name_for_reference(schema as Reference, args.document)}`
+      ]
     } else if ('allOf' in schema) {
       return [cf`(`, ...join_fragments(cf` & `, schema.allOf!.map(inner)), cf`)`]
     } else if ('oneOf' in schema) {
@@ -185,7 +193,7 @@ function schema_to_typescript(args: {
                   name: '[additional: string]',
                   type: schema_to_typescript({
                     schema: additional,
-                    ns: args.ns,
+                    types_symbol: args.types_symbol,
                     string_formats: args.string_formats,
                     document: args.document,
                   }),

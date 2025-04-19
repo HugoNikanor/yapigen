@@ -505,14 +505,14 @@ function format_parameter_type(
 
     return schema_to_typescript({
       schema: media.schema ?? {},
-      ns: `${types_symbol}.`,
+      types_symbol,
       string_formats,
       document,
     })
   } else if ('schema' in parameter) {
     return schema_to_typescript({
       schema: parameter.schema ?? {},
-      ns: `${types_symbol}.`,
+      types_symbol,
       string_formats,
       document,
     })
