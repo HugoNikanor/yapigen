@@ -43,6 +43,7 @@ import { assertUnreachable } from '@todo-3.0/lib/unreachable'
 import type { FormatSpec } from '../json-schema-formats'
 import { validate_and_parse_body } from './validate-body'
 import { is_authenticated } from './authentication'
+import type { CountedSymbol } from '../counted-symbol'
 
 const operations = ['get', 'put', 'post', 'delete', 'options', 'head', 'patch', 'trace'] as const
 
@@ -124,8 +125,8 @@ function format_operation_api_call(args: {
   shared_parameters: Parameter[],
   parameters_object: string,
   default_security: SecurityRequirement[],
-  generator_common_symbol: string,
-  types_symbol: string,
+  generator_common_symbol: CountedSymbol,
+  types_symbol: CountedSymbol,
   validators_symbol: string,
 
   gensym: (hint?: string) => string,
@@ -162,6 +163,11 @@ function format_operation_api_call(args: {
   function_args.push(
     { name: 'headers', type: [cf`Record<string, string>`], optional: true },
   )
+
+  // TODO The following should be passed as CountedSymbols:
+  // - SaveRefreshCB
+  // - Authenticator
+  // - RefreshFunction
 
   if (authenticated_endpoint) {
     function_args.push(
@@ -355,6 +361,7 @@ function format_operation_api_call(args: {
   frags.push(
     cf`export async function ${args.operation.operationId}`)
 
+  // TODO get BaseAccount as a counted symbol
   if (authenticated_endpoint) {
     frags.push(cf`<
     ${jwt_payload_var}     extends { [key: string]: unknown },
@@ -524,7 +531,7 @@ function format_operation_api_call(args: {
                     online: ${response_object}.online,
                 }
             case "malformed":
-                throw new APIMalformedError(${response_object}.msg)
+                throw new ${args.generator_common_symbol}.APIMalformedError(${response_object}.msg)
             default:
                 assertUnreachable(${response_object})
         }
@@ -565,7 +572,7 @@ function format_operation_api_call(args: {
     }).concat([
       new CodeFragment(
         `default:
-        throw new APIMalformedError("Unknown HTTP status code: " + ${response_object}.status)\n`)
+        throw new ${args.generator_common_symbol}.APIMalformedError("Unknown HTTP status code: " + ${response_object}.status)\n`)
     ])))
 
   frags.push(cf`}`) /* end function declaration */
@@ -598,11 +605,12 @@ Symbol the express library is importend under.
 function format_operation_as_server_endpoint_handler(args: {
   operation: Operation,
   shared_parameters: Parameter[],
-  generator_common_symbol: string,
-  types_symbol: string,
+  generator_common_symbol: CountedSymbol,
+  types_symbol: CountedSymbol,
   handler_types_symbol: string,
   validators_symbol: string,
   express_symbol: string,
+  qs_lib_symbol: CountedSymbol,
 
   gensym: (hint?: string) => string,
   string_formats: { [format: string]: FormatSpec },
@@ -745,6 +753,7 @@ function format_operation_as_server_endpoint_handler(args: {
       res_var: res_var,
       handler_args_var: handler_args_var,
       validators_symbol: args.validators_symbol,
+      qs_lib_symbol: args.qs_lib_symbol,
       gensym: args.gensym,
       document: args.document,
       string_formats: args.string_formats,
@@ -917,7 +926,7 @@ Symbol the express library is importend under.
 function format_operation_as_server_endpoint_handler_type(args: {
   operation: Operation,
   shared_parameters: Parameter[],
-  types_symbol: string,
+  types_symbol: CountedSymbol,
   express_symbol: string,
   string_formats: { [format: string]: FormatSpec },
   document: OpenAPISpec,
@@ -1004,6 +1013,8 @@ function format_operation_as_server_endpoint_handler_type(args: {
     TODO make the thunk wrapper automatic, instead of manually writing
     it for each clause.
      */
+
+    // TODO get Awaitable from somewhere
     if ('content' in response) {
       for (const [content_type, media] of Object.entries(response.content!)) {
         switch (content_type) {
@@ -1082,7 +1093,7 @@ actually check it during runtime.
  */
 function return_body_type(
   content: { [k: string]: MediaType },
-  types_symbol: string,
+  types_symbol: CountedSymbol,
   string_formats: { [format: string]: FormatSpec },
   document: OpenAPISpec,
 ): ({
@@ -1132,7 +1143,7 @@ function get_return_type(
   status: string,
   response_: Reference | Response,
   security: SecurityRequirement[],
-  types_symbol: string,
+  types_symbol: CountedSymbol,
   string_formats: { [format: string]: FormatSpec },
   document: OpenAPISpec,
 ): CodeFragment[] | null {
@@ -1237,7 +1248,7 @@ A list of structures, containing
 function handle_request_body(args: {
   bodies: { [content_type: string]: MediaType },
   body_required: boolean,
-  types_symbol: string,
+  types_symbol: CountedSymbol,
   source_param: string,
   string_formats: { [format: string]: FormatSpec },
   document: OpenAPISpec,
@@ -1316,7 +1327,7 @@ function request_body_to_serializer_input_type(args: {
   schema: Schema | Reference | undefined,
   content_type: string,
 
-  types_symbol: string,
+  types_symbol: CountedSymbol,
 
   string_formats: { [format: string]: FormatSpec },
   document: OpenAPISpec,
@@ -1350,6 +1361,7 @@ function build_query_string(args: {
   let s: string = ''
 
   if (args.prefix) {
+    // TODO get url_concat from somewhere
     s += `url_concat(${args.prefix}, ${args.path_template}).href`
   } else {
     s += args.path_template
@@ -1458,6 +1470,7 @@ function handle_request_body_payload(args: {
   res_var: string,
   handler_args_var: string,
   validators_symbol: string,
+  qs_lib_symbol: CountedSymbol,
   gensym: (hint?: string) => string,
   string_formats: { [format: string]: FormatSpec },
   document: OpenAPISpec,
@@ -1530,7 +1543,7 @@ function handle_request_body_payload(args: {
       try {
         const ${structured_body} = ${content_type[1] === 'json'
             ? 'JSON.parse'
-            : 'qs.parse'
+            : `${args.qs_lib_symbol}.parse`
           }(${decoder_var}.decode(${raw_body_var})); \n`)
 
         if ('schema' in content_info) {

@@ -26,6 +26,7 @@ import type { FormatSpec } from './json-schema-formats'
 import { DEFAULT_STRING_FORMATS } from './json-schema-formats'
 import package_json from '../package.json'
 import * as crypto from 'node:crypto'
+import { CountedSymbol } from './counted-symbol'
 
 
 function preamble(f: string) {
@@ -231,35 +232,17 @@ ${validator_symbol}.addSchema(
 
     /* Generate file with API calls */
     const self = configuration.output.calls
-    const generator_common_symbol = gensym('generator_common')
-    const types_symbol = gensym('types')
+    const generator_common_symbol = new CountedSymbol(gensym('generator_common'))
+    const types_symbol = new CountedSymbol(gensym('types'))
     const validators_symbol = gensym('validators')
     await generate({
       ...config_common,
       preamble_path: preamble('calls.ts'),
       output_path: self.path,
       content: [
-
-        cf`import {
-            APIMalformedError,
-        } from ${ts_string(get_import_path(self, configuration.output.common))};\n`,
-
-        import_star({
-          as: types_symbol,
-          from: get_import_path(self, configuration.output.types),
-          l: get_here(),
-          type: true,
-        }),
-
         import_star({
           as: validators_symbol,
           from: get_import_path(self, configuration.output.validators),
-          l: get_here(),
-        }),
-
-        import_star({
-          as: generator_common_symbol,
-          from: get_import_path(self, configuration.output.common),
           l: get_here(),
         }),
 
@@ -279,6 +262,25 @@ ${validator_symbol}.addSchema(
             string_formats: string_formats,
             document: document,
           })),
+
+
+        ...(generator_common_symbol.count > 0
+          ? [import_star({
+            as: String(generator_common_symbol),
+            from: get_import_path(self, configuration.output.common),
+            l: get_here(),
+          })]
+          : []),
+
+        ...(types_symbol.count > 0
+          ? [import_star({
+            as: String(types_symbol),
+            from: get_import_path(self, configuration.output.types),
+            l: get_here(),
+            type: true,
+          })]
+          : []),
+
       ],
     })
   }
@@ -286,19 +288,13 @@ ${validator_symbol}.addSchema(
   {
     /* Generate server handler types */
     const self = configuration.output.server_handler_types
-    const types_symbol = gensym('types')
+    const types_symbol = new CountedSymbol(gensym('types'))
     const express_symbol = gensym('express')
     await generate({
       ...config_common,
       output_path: self.path,
       content:
         [
-          import_star({
-            as: types_symbol,
-            from: get_import_path(self, configuration.output.types),
-            l: get_here(),
-            type: true,
-          }),
           cf`import ${express_symbol} from 'express';\n`,
           cf`type Awaitable<T> = T | Promise<T>;\n`,
           ...string_format_imports,
@@ -312,6 +308,15 @@ ${validator_symbol}.addSchema(
                 string_formats: string_formats,
                 document: document,
               })),
+
+          ...(types_symbol.count > 0
+            ? [import_star({
+              as: String(types_symbol),
+              from: get_import_path(self, configuration.output.types),
+              l: get_here(),
+              type: true,
+            })]
+            : []),
         ],
     })
   }
@@ -325,15 +330,8 @@ ${validator_symbol}.addSchema(
       content: (() => {
         const result: CodeFragment[] = []
 
-        const generator_common_symbol = gensym('generator_common')
-        const types_symbol = gensym('types')
-
-        result.push(import_star({
-          as: types_symbol,
-          from: get_import_path(self, configuration.output.types),
-          l: get_here(),
-          type: true,
-        }))
+        const generator_common_symbol = new CountedSymbol(gensym('generator_common'))
+        const types_symbol = new CountedSymbol(gensym('types'))
 
         const handler_types_symbol = gensym('handler_types')
 
@@ -351,21 +349,12 @@ ${validator_symbol}.addSchema(
           l: get_here(),
         }))
 
-        result.push(import_star({
-          as: generator_common_symbol,
-          from: get_import_path(self, configuration.output.common),
-          l: get_here(),
-        }))
 
         const express_symbol = gensym('express')
 
         result.push(cf`import ${express_symbol} from 'express';\n`)
 
-        // NOTE: this is only sometimes required.
-        // Make the inclusion conditional, to allow the importing code
-        // to omit this as a dependency depending on the OpenAPI
-        // schema.
-        result.push(cf`import * as qs from 'qs';\n`)
+        const qs_lib_symbol = new CountedSymbol(gensym('qs'))
 
         result.push(...format_path_item_setup_server_router(
           document.paths, handler_types_symbol, express_symbol, gensym))
@@ -382,11 +371,33 @@ ${validator_symbol}.addSchema(
               handler_types_symbol: handler_types_symbol,
               validators_symbol: validators_symbol,
               express_symbol: express_symbol,
+              qs_lib_symbol: qs_lib_symbol,
 
               gensym: gensym,
               string_formats: string_formats,
               document: document,
             }))
+        }
+
+        if (generator_common_symbol.count > 0) {
+          result.push(import_star({
+            as: String(generator_common_symbol),
+            from: get_import_path(self, configuration.output.common),
+            l: get_here(),
+          }))
+        }
+
+        if (types_symbol.count > 0) {
+          result.push(import_star({
+            as: String(types_symbol),
+            from: get_import_path(self, configuration.output.types),
+            l: get_here(),
+            type: true,
+          }))
+        }
+
+        if (qs_lib_symbol.count > 0) {
+          result.push(cf`import * as ${qs_lib_symbol} from 'qs';\n`)
         }
 
         return result

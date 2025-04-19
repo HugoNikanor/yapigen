@@ -28,6 +28,8 @@ import {
 } from './util'
 import type { FormatSpec } from '../json-schema-formats'
 
+import type { CountedSymbol } from '../counted-symbol'
+
 /**
 Generate API call functions from a PathItem.
 
@@ -57,8 +59,8 @@ function format_path_item_as_api_call(args: {
   path: string,
   body: PathItem,
   default_security: SecurityRequirement[],
-  generator_common_symbol: string,
-  types_symbol: string,
+  generator_common_symbol: CountedSymbol,
+  types_symbol: CountedSymbol,
   validators_symbol: string,
 
   gensym: (hint?: string) => string,
@@ -129,11 +131,12 @@ Symbol the express library is importend under.
 function format_path_item_as_server_endpoint_handlers(args: {
   path: string,
   body: PathItem,
-  generator_common_symbol: string,
-  types_symbol: string,
+  generator_common_symbol: CountedSymbol,
+  types_symbol: CountedSymbol,
   handler_types_symbol: string,
   validators_symbol: string,
   express_symbol: string,
+  qs_lib_symbol: CountedSymbol,
 
   gensym: (hint?: string) => string,
   string_formats: { [format: string]: FormatSpec },
@@ -158,6 +161,7 @@ function format_path_item_as_server_endpoint_handlers(args: {
       generator_common_symbol: args.generator_common_symbol,
       types_symbol: args.types_symbol,
       handler_types_symbol: args.handler_types_symbol,
+      qs_lib_symbol: args.qs_lib_symbol,
       validators_symbol: args.validators_symbol,
       express_symbol: args.express_symbol,
 
@@ -179,7 +183,7 @@ Symbol the express library is importend under.
 function format_path_item_as_server_handler_types(args: {
   path: string,
   body: PathItem,
-  types_symbol: string,
+  types_symbol: CountedSymbol,
   express_symbol: string,
   string_formats: { [format: string]: FormatSpec },
   document: OpenAPISpec,

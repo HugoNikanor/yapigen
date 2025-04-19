@@ -16,6 +16,7 @@ import { CodeFragment, cf } from '../code-fragment'
 import { FormatSpec } from '../json-schema-formats'
 import { validate_and_parse_body } from './validate-body'
 import { is_authenticated } from './authentication'
+import type { CountedSymbol } from '../counted-symbol'
 
 /**
 Generate code to handle one response from a fetch request.
@@ -57,8 +58,8 @@ function format_response(args: {
   response: Response,
   response_object: string,
   security: SecurityRequirement[],
-  generator_common_symbol: string,
-  types_symbol: string,
+  generator_common_symbol: CountedSymbol,
+  types_symbol: CountedSymbol,
   validators_symbol: string,
 
   gensym: (hint?: string) => string,
@@ -109,7 +110,7 @@ function format_response(args: {
           cf`(() => {
         const ${header_var} = ${args.response_object}.headers.get(${key});`,
 
-          cf`if (! ${header_var}) { throw new APIMalformedError(`,
+          cf`if (! ${header_var}) { throw new ${args.generator_common_symbol}.APIMalformedError(`,
           new CodeFragment(ts_string(`Required header ${key} absent from response.`)),
           cf`);}\n`,
 
@@ -162,6 +163,7 @@ function format_response(args: {
   if ('content' in args.response) {
     frags.push(
       /* parse_content_type defined in the preamble file. */
+      // TODO get `parse_content_type` from somewhere
       cf`const [${content_type_var}, _] = parse_content_type(${args.response_object}.headers.get('Content-Type'));\n`,
       /*
       TODO handle the `encoding` parameter. Currently, we assume that
@@ -207,7 +209,7 @@ function format_response(args: {
       frags.push(cf`};\n`) // end case
     }
     frags.push(new CodeFragment(
-      `default: throw new APIMalformedError("Unknown Content Type: " + ${content_type_var})`))
+      `default: throw new ${args.generator_common_symbol}.APIMalformedError("Unknown Content Type: " + ${content_type_var})`))
     frags.push(cf`}\n`) // end switch mimetype
 
   } else {

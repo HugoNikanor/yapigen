@@ -34,6 +34,7 @@ import { NotImplemented } from '../not-implemented'
 import { ObjectField, ts_string, map_to_ts_object } from './util'
 import { validate_and_parse_body } from './validate-body'
 import { schema_to_typescript } from '../json-schema'
+import type { CountedSymbol } from '../counted-symbol'
 
 /**
 Return a TypeScript fragment, which when evaluated, is the parsed form
@@ -56,7 +57,7 @@ Symbol the generated validators are imported under.
 function unpack_parameter_expression(args: {
   header_field: string,
   header: (Header | Parameter) & { name: string },
-  generator_common_symbol: string,
+  generator_common_symbol: CountedSymbol,
   validators_symbol: string,
   gensym: (hint?: string) => string,
   string_formats: { [format: string]: FormatSpec },
@@ -430,7 +431,7 @@ symbol which the generated types is imported under.
  */
 function format_parameter(
   parameter: Parameter | (Header & { in: 'header', name: string }),
-  types_symbol: string,
+  types_symbol: CountedSymbol,
   string_formats: { [format: string]: FormatSpec },
   document: OpenAPISpec,
 ): null | ObjectField {
@@ -489,7 +490,7 @@ symbol which the generated types is imported under.
  */
 function format_parameter_type(
   parameter: Parameter | Header,
-  types_symbol: string,
+  types_symbol: CountedSymbol,
   string_formats: { [format: string]: FormatSpec },
   document: OpenAPISpec,
 ): CodeFragment[] {
