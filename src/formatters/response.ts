@@ -164,7 +164,7 @@ function format_response(args: {
     frags.push(
       /* parse_content_type defined in the preamble file. */
       // TODO get `parse_content_type` from somewhere
-      cf`const [${content_type_var}, _] = parse_content_type(${args.response_object}.headers.get('Content-Type'));\n`,
+      cf`const [${content_type_var}] = parse_content_type(${args.response_object}.headers.get('Content-Type'));\n`,
       /*
       TODO handle the `encoding` parameter. Currently, we assume that
       all recieved data is in the "correct" encoding (which should be
