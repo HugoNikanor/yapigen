@@ -73,7 +73,7 @@ function validate_and_parse_body(args: {
           'example',
           'summary'
         ].includes(k)) { return }
-        else { return v }
+        else { return v as unknown }
       },
     )});\n`
   }

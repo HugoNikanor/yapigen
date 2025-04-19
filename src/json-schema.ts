@@ -188,7 +188,7 @@ function schema_to_typescript(args: {
                 /* no-op */
               } else {
                 const additional = resolve(
-                  schema.additionalProperties as Schema | Reference,
+                  schema.additionalProperties,
                   args.document)
                 generated_properties.push({
                   name: '[additional: string]',

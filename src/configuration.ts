@@ -12,6 +12,7 @@ import { Validator, ValidatorResult } from 'jsonschema'
 import { FormatSpec, parse_string_format_spec } from './json-schema-formats'
 import type { Schema } from './openapi'
 import { expand_vars } from './expand-vars'
+import type { Json } from '@todo-3.0/lib/json'
 
 
 /*
@@ -270,7 +271,7 @@ async function load_configuration_file(
 
       case '.yaml':
       case '.yml':
-        return (data: string) => YAML.parse(data)
+        return (data: string) => YAML.parse(data) as Json
 
       default:
         console.error(
@@ -318,13 +319,13 @@ async function load_configuration_file(
     }
   }
 
-  return data as Partial<Configuration>
+  return data
 }
 
 function format_validator_error(result: ValidatorResult): string {
   return result.errors
     .map((err) => {
-      const path = err.path.map(s => `/${s}`)
+      const path = err.path.map(s => `/${s}`).join('')
       return `- Object at "#${path}" ${err.message}.\n`
         + `  Got \`${JSON.stringify(err.instance)}\``
     })
@@ -444,7 +445,7 @@ async function parse_command_line(
       console.error('Perhaps you want to specify a configuration file with `--config <filename>`?')
     } else {
       console.error('Please check your command line, and the following loaded files:')
-      for (const f in sourced_files) {
+      for (const f of sourced_files) {
         console.error(`- ${f}`)
       }
     }

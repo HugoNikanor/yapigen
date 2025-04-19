@@ -2,4 +2,4 @@
 
 import { main } from '.'
 
-main().then(process.exit)
+void main().then((exitCode) => process.exitCode = exitCode)

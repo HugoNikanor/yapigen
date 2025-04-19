@@ -68,14 +68,14 @@ function resolve<T extends object>(
   if ('$ref' in object) {
     const result = resolveReference(
       document as { [key: string]: Json },
-      object['$ref'] as string)
+      object['$ref'])
     if (!isObject(result)) {
-      throw new Error(`"${object['$ref']}" didn't resolve to an object: "${result}"`)
+      throw new Error(`"${object['$ref']}" didn't resolve to an object: ${JSON.stringify(result)}`)
     }
     return result as T
   }
 
-  return object as T
+  return object
 }
 
 

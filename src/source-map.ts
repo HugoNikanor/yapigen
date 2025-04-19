@@ -284,7 +284,7 @@ async function find_and_get_source_map(
     }
   } catch (e) {
     console.error(
-      `Failed finding or parsing source map for "${generated_file}":\n${e}\n`)
+      `Failed finding or parsing source map for "${generated_file[0]}":\n${String(e)}\n`)
     return null
   }
 }

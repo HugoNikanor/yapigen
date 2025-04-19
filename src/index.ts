@@ -590,9 +590,9 @@ async function generate(args: {
   if (args.prettify) {
     const pretty_result = await prettier.format(
       result, { parser: 'typescript' })
-    outfile.write(pretty_result)
+    await outfile.write(pretty_result)
   } else {
-    outfile.write(result)
+    await outfile.write(result)
   }
   await outfile.close()
 

@@ -717,7 +717,8 @@ function handle_form_parameter(
       return [cf`[[${key}, ${key}]]`]
 
     default:
-      throw new Error(`Encountered schema of unknown type: ${schema.type}\n`
+      schema.type satisfies never /* ensures complete switch */
+      throw new Error(`Encountered schema of unknown type: ${schema.type as string}\n`
         + JSON.stringify(schema, null, 2))
   }
 

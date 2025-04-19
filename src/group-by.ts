@@ -26,5 +26,5 @@ declare global {
 }
 
 Array.prototype.groupBy = function <T, V>(f: (x: T) => V) {
-  return group_by(f, this)
+  return group_by(f, this as T[])
 }

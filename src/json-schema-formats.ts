@@ -78,7 +78,7 @@ const DEFAULT_STRING_FORMATS = {
 
 
 function build_function(spec: { param: string, body: string }): (name: string) => string {
-  return eval(`(${spec.param}) => ${ts_string(spec.body, '`')}`)
+  return eval(`(${spec.param}) => ${ts_string(spec.body, '`')}`) as (name: string) => string
 }
 
 function isFunctionSpec(x: unknown): x is { param: string, body: string } {
