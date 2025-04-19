@@ -84,19 +84,19 @@ Note that this does *not* include the name
 `type ${get_name(schema)} = ${schema_to_typescript(schema)}`
 ```
 
-@param ns
+@param args.ns
 Prefix to add to all type symbols. When declaring the symbols, this
 should be ''. When using the symbols imported though a symbol, this
 should be `${library_symbol}.`
  */
-function schema_to_typescript(
+function schema_to_typescript(args: {
   schema: Reference | Schema | boolean,
   ns: string,
   string_formats: { [format: string]: FormatSpec },
   document: OpenAPISpec,
-): CodeFragment[] {
-  if (schema === true) return [cf`any`]
-  if (schema === false) return [cf`never`]
+}): CodeFragment[] {
+  if (args.schema === true) return [cf`any`]
+  if (args.schema === false) return [cf`never`]
 
   function inner(schema: Reference | Schema): CodeFragment[] {
     if (Object.keys(schema).length === 0) {
@@ -105,7 +105,7 @@ function schema_to_typescript(
 
     if ('$ref' in schema) {
       /* We assume that it's always a reference to a schema */
-      return [cf`${ns}${ts_name_for_reference(schema as Reference, document)}`]
+      return [cf`${args.ns}${ts_name_for_reference(schema as Reference, args.document)}`]
     } else if ('allOf' in schema) {
       return [cf`(`, ...join_fragments(cf` & `, schema.allOf!.map(inner)), cf`)`]
     } else if ('oneOf' in schema) {
@@ -132,7 +132,7 @@ function schema_to_typescript(
             if (schema.format === undefined) {
               return [cf`string`]
             } else {
-              const spec = string_formats[schema.format]
+              const spec = args.string_formats[schema.format]
               if (!spec) {
                 throw new NotImplemented(`Strings with ${schema.format} format`)
               }
@@ -180,10 +180,15 @@ function schema_to_typescript(
               } else {
                 const additional = resolve(
                   schema.additionalProperties as Schema | Reference,
-                  document)
+                  args.document)
                 generated_properties.push({
                   name: '[additional: string]',
-                  type: schema_to_typescript(additional, ns, string_formats, document),
+                  type: schema_to_typescript({
+                    schema: additional,
+                    ns: args.ns,
+                    string_formats: args.string_formats,
+                    document: args.document,
+                  }),
                   optional: false,
                   raw: true,
                 })
@@ -201,7 +206,7 @@ function schema_to_typescript(
     }
   }
 
-  return inner(schema)
+  return inner(args.schema)
 
 }
 

@@ -503,9 +503,19 @@ function format_parameter_type(
     value for transport */
     const [[_, media]] = content
 
-    return schema_to_typescript(media.schema ?? {}, `${types_symbol}.`, string_formats, document)
+    return schema_to_typescript({
+      schema: media.schema ?? {},
+      ns: `${types_symbol}.`,
+      string_formats,
+      document,
+    })
   } else if ('schema' in parameter) {
-    return schema_to_typescript(parameter.schema ?? {}, `${types_symbol}.`, string_formats, document)
+    return schema_to_typescript({
+      schema: parameter.schema ?? {},
+      ns: `${types_symbol}.`,
+      string_formats,
+      document,
+    })
   } else {
     throw new Error(`Content or Schema required in headers and parameter. Got ${JSON.stringify(parameter)}`)
   }

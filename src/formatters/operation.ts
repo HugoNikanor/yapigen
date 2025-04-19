@@ -1031,11 +1031,12 @@ function format_operation_as_server_endpoint_handler_type(args: {
             if ('schema' in media) {
               results.push({
                 name: content_type,
-                type: [cf`() => Awaitable<`, ...schema_to_typescript(
-                  resolve(media.schema!, args.document),
-                  `${args.types_symbol}.`,
-                  args.string_formats,
-                  args.document),
+                type: [cf`() => Awaitable<`, ...schema_to_typescript({
+                  schema: resolve(media.schema!, args.document),
+                  ns: `${args.types_symbol}.`,
+                  string_formats: args.string_formats,
+                  document: args.document,
+                }),
                 cf`>`,
                 ],
               })
@@ -1114,7 +1115,7 @@ function return_body_type(
         return {
           content_type: ts_string('application/json'),
           body_type: schema_to_typescript(
-            body.schema!, `${types_symbol}.`, string_formats, document),
+            { schema: body.schema!, ns: `${types_symbol}.`, string_formats, document }),
         }
 
       default:
@@ -1333,9 +1334,12 @@ function request_body_to_serializer_input_type(args: {
   document: OpenAPISpec,
 }): CodeFragment[] {
   if (args.schema) {
-    return schema_to_typescript(
-      args.schema, `${args.types_symbol}.`,
-      args.string_formats, args.document)
+    return schema_to_typescript({
+      schema: args.schema,
+      ns: `${args.types_symbol}.`,
+      string_formats: args.string_formats,
+      document: args.document,
+    })
   } else {
     switch (args.content_type) {
       case 'text/plain':

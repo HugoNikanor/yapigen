@@ -25,8 +25,9 @@ function format_schema(
 ): CodeFragment[] {
   return [
     cf`export type ${typename(name, schema)} = `,
-    ...schema_to_typescript(
-      schema, '', string_formats, document),
+    ...schema_to_typescript({
+      schema, ns: '', string_formats, document
+    }),
     cf`;`
   ]
 }
