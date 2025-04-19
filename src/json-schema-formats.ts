@@ -119,7 +119,10 @@ function parse_string_format_spec(spec: unknown): FormatSpec {
     parse: build_function(spec.parse),
     serialize: build_function(spec.serialize),
     type: spec.type,
-    imports: spec.imports,
+  }
+
+  if (spec.imports) {
+    result.imports = spec.imports
   }
 
   if ('instanceof' in spec) {

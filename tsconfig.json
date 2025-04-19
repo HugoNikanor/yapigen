@@ -11,6 +11,7 @@
     "rewriteRelativeImportExtensions": true,
     "moduleResolution": "bundler",
     "target": "es2021",
+    "exactOptionalPropertyTypes": true,
     "strict": true
   },
   "include": ["src"]

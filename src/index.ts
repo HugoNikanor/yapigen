@@ -573,13 +573,16 @@ async function generate(args: {
   let result: string = ''
 
   for (const frag of frags) {
-    result += await frag.render({
-      include_location: args.source_locations
+    result += await frag.render(
+      args.source_locations
         ? {
-          generated_file: args.output_path,
-          format: args.source_locations,
-        } : undefined,
-    })
+          include_location: {
+            generated_file: args.output_path,
+            format: args.source_locations,
+          }
+        }
+        : {}
+    )
   }
 
   console.log('Writing', args.output_path)

@@ -333,7 +333,9 @@ function format_validator_error(result: ValidatorResult): string {
 
 async function parse_command_line(
 ): Promise<Configuration | null> {
-  let configuration: Partial<Configuration> = {}
+  let configuration: Partial<Omit<Configuration, 'output'>> & { output: Partial<Configuration['output']> } = {
+    output: {},
+  }
 
   /* File format for next upcomming --configuration option.
   Usually not needed, since it checks file extensions. */
@@ -402,14 +404,7 @@ async function parse_command_line(
             console.warn(`WARNING: No output of type '${m[1]}'`)
           }
 
-          /* This creates an incorrect type, since we only add one of
-          many required fields. However, since we check the type of
-          the objecct before returning it, it will eventually be
-          correct. */
-          configuration.output = {
-            ...configuration.output,
-            [m[1]]: { path: process.argv[++i] } satisfies OutputEntry
-          } as typeof configuration.output
+          configuration.output[m[1] as keyof Configuration['output']] = { path: process.argv[++i] }
 
         } else {
           console.warn(`Unknown command line flag: ${process.argv[i]}`)
