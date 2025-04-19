@@ -376,14 +376,14 @@ function parse_source_map(
       if ('file_idx_delta' in fragment) {
         if (location === undefined) {
           location = {
-            file: fragment!.file_idx_delta,
-            line: fragment!.line_delta,
-            column: fragment!.col_delta,
+            file: fragment.file_idx_delta,
+            line: fragment.line_delta,
+            column: fragment.col_delta,
           }
         } else {
-          location.file += fragment!.file_idx_delta
-          location.line += fragment!.line_delta
-          location.column += fragment!.col_delta
+          location.file += fragment.file_idx_delta
+          location.line += fragment.line_delta
+          location.column += fragment.col_delta
         }
 
 

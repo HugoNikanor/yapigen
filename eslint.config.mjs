@@ -12,6 +12,7 @@ export default [
   {
     rules: {
       "no-unused-vars": "off",
+      "@typescript-eslint/no-non-null-assertion": "error",
       "@typescript-eslint/no-unused-vars": [
         "error",
         {

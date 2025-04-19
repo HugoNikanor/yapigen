@@ -81,7 +81,7 @@ function format_response(args: {
     type NamedHeader = Header & { name: string }
 
     const headers: NamedHeader[] = Object.entries(
-      resolve(args.response.headers!, args.document)
+      resolve(args.response.headers, args.document)
     )
       .map(([name, ref_]) => ({
         ...resolve(ref_, args.document),
@@ -172,7 +172,7 @@ function format_response(args: {
       work™).
        */
       cf`switch (${content_type_var}) {\n`)
-    for (const [mimetype, media] of Object.entries(args.response.content!)) {
+    for (const [mimetype, media] of Object.entries(args.response.content)) {
       frags.push(cf`case ${ts_string(mimetype)}: {\n`)
       response.set(
         'content_type',
@@ -183,7 +183,7 @@ function format_response(args: {
         frags.push(cf`const ${body_var} = await ${args.response_object}.json(); \n`)
         if ('schema' in media) {
           response.set('body', validate_and_parse_body({
-            schema: media.schema!,
+            schema: media.schema,
             body_var: body_var,
             validators_symbol: args.validators_symbol,
             gensym: args.gensym,

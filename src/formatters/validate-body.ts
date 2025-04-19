@@ -55,6 +55,7 @@ function validate_and_parse_body(args: {
 
   if ('$ref' in args.schema) {
     // console.warn(args.media.schema)
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const typename = (args.schema as Reference).$ref.split('/').at(-1)!
 
     validator = cf`${validator_function_name(typename, args.validators_symbol)}(${args.body_var});\n`

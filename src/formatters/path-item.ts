@@ -81,7 +81,7 @@ function format_path_item_as_api_call(args: {
   // Even though two parameters with the same name could probably exist if they are inserted at different places
 
   const shared_parameters = 'parameters' in args.body
-    ? args.body.parameters!.map(x => resolve(x, args.document))
+    ? args.body.parameters.map(x => resolve(x, args.document))
     : []
 
 
@@ -92,7 +92,7 @@ function format_path_item_as_api_call(args: {
     if (args.body[op] === undefined) return []
     return [...format_operation_api_call({
       op: op,
-      operation: args.body[op]!,
+      operation: args.body[op],
       shared_parameters: shared_parameters,
       path_template: path_template,
       parameters_object: parameters_object,
@@ -146,7 +146,7 @@ function format_path_item_as_server_endpoint_handlers(args: {
   // Even though two parameters with the same name could probably exist if they are inserted at different places
 
   const shared_parameters = 'parameters' in args.body
-    ? args.body.parameters!.map(x => resolve(x, args.document))
+    ? args.body.parameters.map(x => resolve(x, args.document))
     : []
 
 
@@ -156,7 +156,7 @@ function format_path_item_as_server_endpoint_handlers(args: {
   return operations.flatMap((op) => {
     if (args.body[op] === undefined) return []
     return [...format_operation_as_server_endpoint_handler({
-      operation: args.body[op]!,
+      operation: args.body[op],
       shared_parameters: shared_parameters,
       generator_common_symbol: args.generator_common_symbol,
       types_symbol: args.types_symbol,
@@ -199,18 +199,18 @@ function format_path_item_as_server_handler_types(args: {
 
   const result: CodeFragment[] = []
   for (const op of operations) {
-    if (op in args.body) {
-      result.push(cf`export type ${args.body[op]!.operationId!} = `)
-      result.push(...format_operation_as_server_endpoint_handler_type({
-        operation: args.body[op]!,
-        shared_parameters: shared_parameters,
-        types_symbol: args.types_symbol,
-        express_symbol: args.express_symbol,
-        string_formats: args.string_formats,
-        document: args.document,
-      }))
-      result.push(cf`;\n`)
-    }
+    const operation = args.body[op]
+    if (!operation) continue
+    result.push(cf`export type ${operation.operationId} = `)
+    result.push(...format_operation_as_server_endpoint_handler_type({
+      operation: operation,
+      shared_parameters: shared_parameters,
+      types_symbol: args.types_symbol,
+      express_symbol: args.express_symbol,
+      string_formats: args.string_formats,
+      document: args.document,
+    }))
+    result.push(cf`;\n`)
   }
   return result
 }
@@ -282,12 +282,12 @@ app.use('/', setup_router({
     Object.entries(paths).map(([path, item]) => ({
       name: path,
       type: object_to_type(operations.map(op => {
-        if (op in item) {
-          return {
-            name: op,
-            type: [cf`${handler_types_symbol}.${item[op]!.operationId!}`],
-          }
-        } else return false
+        const operation = item[op]
+        if (!operation) return false
+        return {
+          name: op,
+          type: [cf`${handler_types_symbol}.${operation.operationId}`],
+        }
       }).filter(x => x !== false))
     }))))
 
@@ -298,14 +298,14 @@ app.use('/', setup_router({
 
   for (const [path, item] of Object.entries(paths)) {
     for (const op of operations) {
-      if (op in item) {
-        const opid = item[op]!.operationId!
+      const operation = item[op]
+      if (!operation) continue
+      const opid = operation.operationId
 
-        const [fixed_path, _] = parse_uri_path(path, s => `:${s}`)
+      const [fixed_path, _] = parse_uri_path(path, s => `:${s}`)
 
-        fragments.push(
-          cf`${router_var}.${op}(${fixed_path}, handle_${opid}(${args_var}.on_error, ${handler_args_var}[${ts_string(path)}].${op}));\n`)
-      }
+      fragments.push(
+        cf`${router_var}.${op}(${fixed_path}, handle_${opid}(${args_var}.on_error, ${handler_args_var}[${ts_string(path)}].${op}));\n`)
     }
   }
 

@@ -14,7 +14,7 @@ import { CodeFragment, cf } from '../code-fragment'
 import type { FormatSpec } from '../json-schema-formats'
 
 function typename(name: string, schema: Schema): string {
-  return to_ts_identifier('title' in schema ? schema.title! : name)
+  return to_ts_identifier(schema.title ?? name)
 }
 
 function format_schema(

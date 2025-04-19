@@ -193,7 +193,7 @@ function parse_uri_path(
     parameters.push(m[1])
     /* c8 ignore next */
     if (!('index' in m)) throw new Error
-    substring_start = m.index! + m[0].length
+    substring_start = m.index + m[0].length
   }
 
   template += path.substring(substring_start)

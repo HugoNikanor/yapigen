@@ -87,7 +87,7 @@ class CodeFragment {
       non-standard. This assumes the format V8 uses as of 2025-01-15.
        */
       if ('stack' in e) {
-        const trace = e.stack!.split('\n').slice(1)
+        const trace = e.stack.split('\n').slice(1)
 
         const m = trace[1].match(/ *at (?<fun>(new )?\S+ )?\(?(?<path>[^:]+):(?<line>\d+):(?<column>\d+)\)?/)
 

@@ -295,7 +295,7 @@ async function load_configuration_file(
   }
 
   if ('input' in data) {
-    data.input = resolve_path(base_filename, data.input!)
+    data.input = resolve_path(base_filename, data.input)
   }
 
   if ('standalone' in data && data.standalone !== undefined) {
@@ -313,7 +313,7 @@ async function load_configuration_file(
   }
 
   if ('output' in data) {
-    for (const output of Object.values(data.output!)) {
+    for (const output of Object.values(data.output)) {
       output.path = resolve_path(base_filename, expand_vars(output.path))
     }
   }
@@ -331,9 +331,27 @@ function format_validator_error(result: ValidatorResult): string {
     .join('\n')
 }
 
+type FormatSpecFunction = {
+  param: string,
+  body: string,
+}
+
 async function parse_command_line(
 ): Promise<Configuration | null> {
-  let configuration: Partial<Omit<Configuration, 'output'>> & { output: Partial<Configuration['output']> } = {
+  let configuration: Partial<Omit<Configuration, 'output'>> & {
+    output: Partial<Configuration['output']>,
+    'string-formats'?: {
+      [key: string]: {
+        parse: FormatSpecFunction,
+        serialize: FormatSpecFunction,
+        instanceof: FormatSpecFunction,
+        type: string,
+        imports: {
+          [key: string]: string[],
+        }
+      },
+    }
+  } = {
     output: {},
   }
 
@@ -423,7 +441,7 @@ async function parse_command_line(
     console.error(format_validator_error(result))
     console.error()
     if (sourced_files.length === 0) {
-      console.error('Perhasps you want to specify a configuration file with `--config <filename>`?')
+      console.error('Perhaps you want to specify a configuration file with `--config <filename>`?')
     } else {
       console.error('Please check your command line, and the following loaded files:')
       for (const f in sourced_files) {
@@ -434,16 +452,20 @@ async function parse_command_line(
     return null
   }
 
+  /*
+  We use `string-formats` (dash) for the "raw" data from the
+  configuration. When we compile these to the data actually in use by
+  the program, we change to `string_format` (underscore).
+   */
   if ('string-formats' in configuration) {
     configuration.string_formats = Object.fromEntries(
-      Object.entries(configuration['string-formats']!)
+      Object.entries(configuration['string-formats'])
         .map(([name, format]) => [
           name,
           parse_string_format_spec(format),
         ]))
     delete configuration['string-formats']
   }
-
 
   return configuration as Configuration
 }

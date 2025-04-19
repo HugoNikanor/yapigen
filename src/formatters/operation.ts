@@ -422,14 +422,14 @@ function format_operation_api_call(args: {
   const header_parameters = groups.get('header')
   if (header_parameters) {
 
-    const groups = header_parameters!.groupBy(p => p.required ?? false)
+    const groups = header_parameters.groupBy(p => p.required ?? false)
 
     /* These are the headers which are passed along to `request`.
     Which is why they all have type `string`, and the actuall type
     check is in the function arguments instead.
      */
     const header_parameters_type = object_to_type(
-      header_parameters!
+      header_parameters
         .map(p => ({
           name: p.name,
           type: [cf`string`],
@@ -483,7 +483,7 @@ function format_operation_api_call(args: {
   /* We do this really late, to ensure args.headers ALWAYS is last in the merged structure */
   request_header_parts.push(cf`${f_args}.headers`)
   if (request_header_parts.length === 1) {
-    request_args.set('headers', [request_header_parts[0]!])
+    request_args.set('headers', [request_header_parts[0]])
   } else {
     request_args.set('headers', [
       cf`{`,
@@ -748,7 +748,7 @@ function format_operation_as_server_endpoint_handler(args: {
 
   if ('requestBody' in args.operation) {
     fragments.push(...handle_request_body_payload({
-      body: resolve(args.operation.requestBody!, args.document),
+      body: resolve(args.operation.requestBody, args.document),
       req_var: req_var,
       res_var: res_var,
       handler_args_var: handler_args_var,
@@ -784,7 +784,7 @@ function format_operation_as_server_endpoint_handler(args: {
     fragments.push(cf`case ${status}:\n`);
 
     if ('headers' in response) {
-      for (const [header, type_] of Object.entries(response.headers!)) {
+      for (const [header, type_] of Object.entries(response.headers)) {
         const type = resolve(type_, args.document)
 
         fragments.push(cf`{`)
@@ -824,7 +824,7 @@ function format_operation_as_server_endpoint_handler(args: {
       const body_var = args.gensym('body')
 
       for (const alternative of handle_request_body({
-        bodies: response.content!,
+        bodies: response.content,
         body_required: true,
         source_param: body_var,
         types_symbol: args.types_symbol,
@@ -996,7 +996,7 @@ function format_operation_as_server_endpoint_handler_type(args: {
     }
 
     if ('headers' in response) {
-      results.push(...Object.entries(response.headers!)
+      results.push(...Object.entries(response.headers)
         .map(([name, type]) =>
           format_parameter(
             { ...resolve(type, args.document), name: name, in: 'header' },
@@ -1016,7 +1016,7 @@ function format_operation_as_server_endpoint_handler_type(args: {
 
     // TODO get Awaitable from somewhere
     if ('content' in response) {
-      for (const [content_type, media] of Object.entries(response.content!)) {
+      for (const [content_type, media] of Object.entries(response.content)) {
         switch (content_type) {
           // TODO match `text/*` here
           case 'text/plain':
@@ -1032,7 +1032,7 @@ function format_operation_as_server_endpoint_handler_type(args: {
               results.push({
                 name: content_type,
                 type: [cf`() => Awaitable<`, ...schema_to_typescript({
-                  schema: resolve(media.schema!, args.document),
+                  schema: resolve(media.schema, args.document),
                   types_symbol: args.types_symbol,
                   string_formats: args.string_formats,
                   document: args.document,
@@ -1115,7 +1115,7 @@ function return_body_type(
         return {
           content_type: ts_string('application/json'),
           body_type: schema_to_typescript(
-            { schema: body.schema!, types_symbol, string_formats, document }),
+            { schema: body.schema, types_symbol, string_formats, document }),
         }
 
       default:
@@ -1170,7 +1170,7 @@ const responseType: Record<string, string> = {
 
   if ('content' in response) {
     const body = return_body_type(
-      response.content!, types_symbol, string_formats, document)
+      response.content, types_symbol, string_formats, document)
 
     if (body.length > 0) {
       for (const entry of body) {
@@ -1189,7 +1189,7 @@ const responseType: Record<string, string> = {
 
   if ('headers' in response) {
 
-    const header_type = object_to_type(Object.entries(response.headers!)
+    const header_type = object_to_type(Object.entries(response.headers)
       .map(([name, spec]) => format_parameter(
         { ...resolve(spec, document), name: name, in: 'header' },
         types_symbol,
@@ -1261,7 +1261,7 @@ function handle_request_body(args: {
 
   const serializers = {
     'application/json': x => {
-      const schema = args.bodies['application/json']!.schema
+      const schema = args.bodies['application/json'].schema
       if (schema === undefined) {
         return [cf`JSON.stringify(${x})`]
       } else {
@@ -1273,7 +1273,7 @@ function handle_request_body(args: {
       }
     },
     'application/x-www-form-urlencoded': x => {
-      const schema = args.bodies['application/x-www-form-urlencoded']!.schema
+      const schema = args.bodies['application/x-www-form-urlencoded'].schema
       if (schema === undefined) {
         return [cf`(new URLSearchParams(${x})).toString()`]
       } else {
@@ -1554,7 +1554,7 @@ function handle_request_body_payload(args: {
           fragments.push(
             cf`${args.handler_args_var}.body = `,
             ...validate_and_parse_body({
-              schema: content_info.schema!,
+              schema: content_info.schema,
               body_var: structured_body,
               validators_symbol: args.validators_symbol,
               gensym: args.gensym,

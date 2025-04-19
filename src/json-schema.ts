@@ -33,9 +33,10 @@ function return_type_name(
   const resolved_schema = resolve(schema, document)
 
   if ('title' in resolved_schema) {
-    return resolved_schema.title!
+    return resolved_schema.title
   } else if ('$ref' in schema) {
     const $ref = schema['$ref'] as string
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     return $ref.split('/').at(-1)!
   } else {
     return null
@@ -65,7 +66,7 @@ function ts_name_for_reference(
   const schema = resolve<Schema>(ref, document)
   const ret = 'title' in schema
     ? schema.title
-    : ref.$ref.split('/').at(-1)!
+    : ref.$ref.split('/').at(-1)! // eslint-disable-line @typescript-eslint/no-non-null-assertion
 
   if (!ret) {
     throw new Error(`Failed finding a name for reference: ${JSON.stringify(ref)}`)
@@ -115,13 +116,13 @@ function schema_to_typescript(args: {
         cf`${ts_name_for_reference(schema as Reference, args.document)}`
       ]
     } else if ('allOf' in schema) {
-      return [cf`(`, ...join_fragments(cf` & `, schema.allOf!.map(inner)), cf`)`]
+      return [cf`(`, ...join_fragments(cf` & `, schema.allOf.map(inner)), cf`)`]
     } else if ('oneOf' in schema) {
-      return [cf`(`, ...join_fragments(cf` | `, schema.oneOf!.map(inner)), cf`)`]
+      return [cf`(`, ...join_fragments(cf` | `, schema.oneOf.map(inner)), cf`)`]
     } else if ('anyOf' in schema) {
-      return [cf`(`, ...join_fragments(cf` | `, schema.anyOf!.map(inner)), cf`)`]
+      return [cf`(`, ...join_fragments(cf` | `, schema.anyOf.map(inner)), cf`)`]
     } else if ('type' in schema) {
-      switch (schema.type!) {
+      switch (schema.type) {
         case 'null':
           return [cf`null`]
         case 'boolean':
@@ -131,11 +132,11 @@ function schema_to_typescript(args: {
           return [cf`number`]
         case 'string':
           if ('enum' in schema) {
-            return [new CodeFragment(schema.enum!
+            return [new CodeFragment(schema.enum
               .map(x => JSON.stringify(x))
               .join(' | '))]
           } else if ('const' in schema) {
-            return [new CodeFragment(JSON.stringify(schema.const!))]
+            return [new CodeFragment(JSON.stringify(schema.const))]
           } else {
             if (schema.format === undefined) {
               return [cf`string`]
@@ -151,7 +152,7 @@ function schema_to_typescript(args: {
         case 'array':
           {
             if ('items' in schema) {
-              return [...inner(schema.items!), cf`[]`]
+              return [...inner(schema.items), cf`[]`]
             } else {
               return [cf`any[]`]
             }
@@ -176,14 +177,14 @@ function schema_to_typescript(args: {
                 }))
 
             if ('additionalProperties' in schema) {
-              if (schema.additionalProperties! === true) {
+              if (schema.additionalProperties === true) {
                 generated_properties.push({
                   name: '[additional: string]',
                   type: [cf`any`],
                   optional: false,
                   raw: true,
                 })
-              } else if (schema.additionalProperties! === false) {
+              } else if (schema.additionalProperties === false) {
                 /* no-op */
               } else {
                 const additional = resolve(
@@ -231,13 +232,13 @@ function merge_schemas(schemas: (Schema & { type: 'object' })[]): Schema {
 
   for (const subschema of schemas) {
     if ('properties' in subschema) {
-      for (const [name, spec] of Object.entries(subschema.properties!)) {
+      for (const [name, spec] of Object.entries(subschema.properties)) {
         properties[name] = spec
       }
     }
 
     if ('required' in subschema) {
-      for (const req of subschema.required!) {
+      for (const req of subschema.required) {
         required.add(req)
       }
     }
@@ -370,7 +371,7 @@ function schema_to_serializer_or_parser(
     } else if ('allOf' in schema) {
       // Merge all entries into the "true" type, then run with that one
 
-      const parts = schema.allOf!.map(
+      const parts = schema.allOf.map(
         (e) => '$ref' in e ? resolve(e, document) : e)
 
       if (!parts.every((e) => e.type === 'object')) {
@@ -394,9 +395,9 @@ function schema_to_serializer_or_parser(
       parts.push(cf`(() => {`)
 
       if ('discriminator' in schema) {
-        parts.push(cf`switch (${x}[${ts_string(schema.discriminator!.propertyName)}]) {`);
-        if (schema.discriminator!.mapping !== undefined) {
-          for (const [value, ref] of Object.entries(schema.discriminator!.mapping!)) {
+        parts.push(cf`switch (${x}[${ts_string(schema.discriminator.propertyName)}]) {`);
+        if ('mapping' in schema.discriminator) {
+          for (const [value, ref] of Object.entries(schema.discriminator.mapping)) {
             parts.push(cf`case ${ts_string(value)}:`)
             const part = inner({ $ref: ref }, x)
             if (part) {
@@ -411,6 +412,7 @@ function schema_to_serializer_or_parser(
             if (!('$ref' in ref)) {
               throw new Error('All entries MUST be refs when using a discriminator')
             }
+            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
             const key = (ref['$ref'] as string).split('/').at(-1)!
             parts.push(cf`case ${ts_string(key)}:`)
             const part = inner(ref, x)
@@ -431,24 +433,20 @@ function schema_to_serializer_or_parser(
         const groups = entries.groupBy(p => p.type)
 
         // if at least one part lacks `type`, fail with not implemented
-        if (groups.get(undefined) !== undefined) {
-
-          for (const entry of groups.get(undefined)!) {
-            if ('allOf' in entry) {
-              // TODO this is the one we need to implement.
-              // Basic idea is to
-              // - take all entries of enstry.allOf, // and merge them into one big object.
-              // - Later parts get priority
-              throw new NotImplemented(`allOf inside ${JSON.stringify(schema)}`)
-            } else if ('oneOf' in entry) {
-              throw new NotImplemented(`oneOf inside ${JSON.stringify(schema)}`)
-            } else if ('anyOf' in entry) {
-              throw new NotImplemented(`anyOf inside ${JSON.stringify(schema)}`)
-            } else {
-              throw new Error(`In a oneOf switch, all clauses must have explicit types: ${JSON.stringify(entries)}`)
-            }
+        for (const entry of groups.get(undefined) ?? []) {
+          if ('allOf' in entry) {
+            // TODO this is the one we need to implement.
+            // Basic idea is to
+            // - take all entries of enstry.allOf, // and merge them into one big object.
+            // - Later parts get priority
+            throw new NotImplemented(`allOf inside ${JSON.stringify(schema)}`)
+          } else if ('oneOf' in entry) {
+            throw new NotImplemented(`oneOf inside ${JSON.stringify(schema)}`)
+          } else if ('anyOf' in entry) {
+            throw new NotImplemented(`anyOf inside ${JSON.stringify(schema)}`)
+          } else {
+            throw new Error(`In a oneOf switch, all clauses must have explicit types: ${JSON.stringify(entries)}`)
           }
-
         }
 
         /*
@@ -462,12 +460,13 @@ function schema_to_serializer_or_parser(
         */
 
 
-        switch ((groups.get('object') ?? []).length) {
+        const objects = groups.get('object') ?? []
+        switch (objects.length) {
           case 0:
             break
           case 1: {
             parts.push(cf`if (typeof ${x} === 'object' && x !== null) {`)
-            const part = inner(groups.get('object')![0], x)
+            const part = inner(objects[0], x)
             if (part) {
               parts.push(cf`return `, ...part)
             } else {
@@ -491,7 +490,7 @@ function schema_to_serializer_or_parser(
               let part: CodeFragment[] | false
               parts.push(cf`if (Array.isArray(${x})) {`)
               if ('items' in arrays[0]
-                && (part = inner(resolve(arrays[0]!.items!, document), loop_var))
+                && (part = inner(resolve(arrays[0].items, document), loop_var))
               ) {
                 parts.push(cf`return ${x}.map((${loop_var}: any) => `, ...part, cf`)`)
               } else {
@@ -521,6 +520,8 @@ function schema_to_serializer_or_parser(
                 //     oneOf: [X, Y]
 
                 const loop_var = 'x'
+                // `e.items` is guaranteed to exist, see `arrays.every` above
+                // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
                 const part = inner({ 'oneOf': arrays.map(e => e.items!) }, loop_var)
                 if (part) {
                   parts.push(cf`return ${x}.map((${loop_var}: any) => `, ...part, cf`)`)
@@ -549,14 +550,18 @@ function schema_to_serializer_or_parser(
 
         // strings with `format` are tested one by one, until a parser
         // works without crashing.
-        if (groups.get('string') !== undefined) {
-          const string_groups = groups.get('string')!.groupBy(s => 'format' in s)
+        let strings
+        if ((strings = groups.get('string')) !== undefined) {
+          const string_groups = strings.groupBy(s => 'format' in s)
 
           /* -------------------------------------------------- */
+          const strings_with_formats = (
+            string_groups.get(true) ?? []
+          ) as (Schema & { format: Required<Schema>['format'] })[]
 
           if (mode === 'serializer') {
 
-            const formats = (string_groups.get(true) ?? []).map(s => s.format!)
+            const formats = strings_with_formats.map(s => s.format)
             let has_bare_string = string_groups.get(false) !== undefined
             for (const format_name of formats) {
               const spec = string_formats[format_name]
@@ -599,27 +604,25 @@ function schema_to_serializer_or_parser(
 
             parts.push(cf`if (typeof ${x} === 'string') {`)
             let has_bare_string = string_groups.get(false) !== undefined
-            if (string_groups.get(true) !== undefined) {
-              for (const string_format of string_groups.get(true)!) {
-                const spec = string_formats[string_format.format!]
-                if (!spec) {
-                  console.warn(`Unknown string format: ${string_format.format!}`)
-                  continue
-                }
-
-                if (spec.type === 'string') {
-                  has_bare_string = true
-                  continue
-                }
-
-                const part = inner(string_format, x)
-                if (!part) {
-                  has_bare_string = true
-                  continue
-                }
-
-                parts.push(cf`try {return `, ...part, cf`} catch (_) {}`)
+            for (const string_format of strings_with_formats) {
+              const spec = string_formats[string_format.format]
+              if (!spec) {
+                console.warn(`Unknown string format: ${string_format.format}`)
+                continue
               }
+
+              if (spec.type === 'string') {
+                has_bare_string = true
+                continue
+              }
+
+              const part = inner(string_format, x)
+              if (!part) {
+                has_bare_string = true
+                continue
+              }
+
+              parts.push(cf`try {return `, ...part, cf`} catch (_) {}`)
             }
 
             if (has_bare_string) {
@@ -670,7 +673,7 @@ function schema_to_serializer_or_parser(
         case 'string':
 
           if ('format' in schema) {
-            const string_format = string_formats[schema.format!]
+            const string_format = string_formats[schema.format]
             if (!string_format) {
               console.warn(`Unknown string format: ${schema.format}`)
               return false
@@ -691,7 +694,7 @@ function schema_to_serializer_or_parser(
         case 'array':
           if ('items' in schema) {
             const loop_var = 'x'
-            const c = inner(schema.items!, loop_var)
+            const c = inner(schema.items, loop_var)
             if (c === false) return false
             return [cf`${x}.map((${loop_var}: any) => `, ...c, cf`)`]
           } else {
@@ -701,7 +704,7 @@ function schema_to_serializer_or_parser(
         case 'object':
           if ('properties' in schema) {
             const modified: CodeFragment[] = []
-            for (const [key, value] of Object.entries(schema.properties!)) {
+            for (const [key, value] of Object.entries(schema.properties)) {
               const safe_key = ts_string(key)
               const c = inner(value, `(${x}[${safe_key}]!)`)
               if (c === false) continue

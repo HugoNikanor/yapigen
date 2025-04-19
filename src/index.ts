@@ -118,7 +118,7 @@ async function main(): Promise<number> {
   const string_format_imports: CodeFragment[] = Object.values(string_formats).flatMap(
     format => {
       if ('imports' in format) {
-        return Object.entries(format.imports!)
+        return Object.entries(format.imports)
           .map(([module, symbols]) =>
             cf`import { ${symbols.join(', ')} } from ${ts_string(module)}; \n`,
           )

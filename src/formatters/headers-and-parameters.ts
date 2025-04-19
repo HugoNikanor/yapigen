@@ -95,9 +95,9 @@ function unpack_parameter_expression(args: {
 
     return [cf`true`]
   } else if ('schema' in args.header) {
-    const schema = resolve(args.header.schema!, args.document)
+    const schema = resolve(args.header.schema, args.document)
 
-    if (!('type' in schema) || !['integer', 'number', 'string'].includes(schema.type!)) {
+    if (!('type' in schema) || !['integer', 'number', 'string'].includes(schema.type)) {
       throw new NotImplemented(`Only basic schemas are implemented for response headers. Got ${JSON.stringify(schema)}`)
     }
 
@@ -122,7 +122,7 @@ function unpack_parameter_expression(args: {
        */
       cf`const ${normalized} = `,
       (
-        ['integer', 'number'].includes(schema.type!)
+        ['integer', 'number'].includes(schema.type)
           ? cf`Number(${args.header_field})`
           /* string, but we catch other types further down */
           : cf`${args.header_field}`
@@ -131,7 +131,7 @@ function unpack_parameter_expression(args: {
     )
     /* Check const and enum validators */
     if ('enum' in schema) {
-      const enumv = JSON.stringify(schema.enum!)
+      const enumv = JSON.stringify(schema.enum)
       fragments.push(cf`
       if (!${enumv}.includes(${normalized})) {
         throw new ${args.generator_common_symbol}.APIMalformedError(
@@ -141,7 +141,7 @@ function unpack_parameter_expression(args: {
     }
 
     if ('const' in schema) {
-      const constv = JSON.stringify(schema.const!)
+      const constv = JSON.stringify(schema.const)
       fragments.push(cf`
       if (${constv} !== ${normalized}) {
         throw new ${args.generator_common_symbol}.APIMalformedError(
@@ -171,7 +171,7 @@ function unpack_parameter_expression(args: {
 
 
     /* depending on type, check type specific validators */
-    switch (schema.type!) {
+    switch (schema.type) {
       case 'integer':
       case 'number':
         if ('multipleOf' in schema) {
@@ -225,11 +225,11 @@ function unpack_parameter_expression(args: {
 
         if ('format' in schema) {
           // TODO in all these cases, we should attach the format as a parameter.
-          if (schema.format! in args.string_formats) {
+          if (schema.format in args.string_formats) {
             fragments.push(
               cf`return `,
               new CodeFragment(
-                args.string_formats[schema.format!]!.parse(normalized))
+                args.string_formats[schema.format].parse(normalized))
             )
             return_type_override = false
           } else {
@@ -257,7 +257,7 @@ function unpack_parameter_expression(args: {
     return fragments
 
   } else if ('content' in args.header) {
-    const content = resolve(args.header.content!, args.document)
+    const content = resolve(args.header.content, args.document)
     if (Object.keys(content).length !== 1) {
       throw new Error
     }
@@ -279,7 +279,7 @@ function unpack_parameter_expression(args: {
           fragments.push(
             cf`return `,
             ...validate_and_parse_body({
-              schema: body.schema!,
+              schema: body.schema,
               body_var: content_var,
               validators_symbol: args.validators_symbol,
               gensym: args.gensym,
@@ -339,7 +339,7 @@ function pack_parameter_expression(
   const key = ts_string(parameter.name)
   if ('content' in parameter) {
 
-    const content = Object.entries(parameter.content!)
+    const content = Object.entries(parameter.content)
     if (content.length !== 1) {
       throw new Error(`If 'content' is present on a parameter, it's length MUST be exactly 1 (${JSON.stringify(content)})`)
     }
@@ -373,7 +373,7 @@ function pack_parameter_expression(
 
     /* Resolve until we get a "true" schema object, since we want to
     actually use it here */
-    let schema = parameter.schema!
+    let schema = parameter.schema
     while ('$ref' in schema) {
       schema = resolve(schema, document)
     }
@@ -495,7 +495,7 @@ function format_parameter_type(
   document: OpenAPISpec,
 ): CodeFragment[] {
   if ('content' in parameter) {
-    const content = Object.entries(parameter.content!)
+    const content = Object.entries(parameter.content)
     if (content.length !== 1) {
       throw new Error(`If 'content' is present on a parameter, it's length MUST be exactly 1 (${JSON.stringify(content)})`)
     }
@@ -545,7 +545,7 @@ function handle_object_schema_parameter(
   const serializers_var = gensym('serializers')
   const out: CodeFragment[] = [cf`(()=>{`]
   if ('properties' in schema) {
-    const properties = resolve(schema.properties!, document)
+    const properties = resolve(schema.properties, document)
     out.push(cf`const ${serializers_var} = `)
 
     const x = gensym('x')
@@ -640,7 +640,7 @@ function handle_simple_parameter(
         return [
           cf`${value}.map(${x} => `,
           ...handle_simple_parameter(
-            resolve(schema.items!, document),
+            resolve(schema.items, document),
             x, false, gensym, string_formats, document),
           cf`).join(',')`
         ]
