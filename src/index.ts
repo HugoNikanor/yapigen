@@ -78,7 +78,7 @@ async function main(): Promise<number> {
   console.log('Continuing with configuration:', configuration)
 
   const gensym_seed = configuration['gensym-seed'] ?? randseed()
-  const gensym = get_gensym(sfc32(...gensym_seed))
+  const gensym = get_gensym(sfc32(gensym_seed))
 
   const bytes = await fs.readFile(configuration.input, 'utf8')
   // TODO pass document through jsonschema's validator, ensuring

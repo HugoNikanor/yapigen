@@ -1,6 +1,7 @@
 export {
   sfc32,
   randseed,
+  type Seed,
 }
 
 /**
@@ -15,7 +16,9 @@ for (let i = 0; i < 10; i++) console.log(getRand());
 @module
  */
 
-function sfc32(a: number, b: number, c: number, d: number): () => number {
+type Seed = [number, number, number, number]
+
+function sfc32([a, b, c, d]: Seed): () => number {
   a >>>= 0
   b >>>= 0
   c >>>= 0
@@ -31,8 +34,6 @@ function sfc32(a: number, b: number, c: number, d: number): () => number {
     return (t >>> 0) / 4294967296;
   }
 }
-
-type Seed = [number, number, number, number]
 
 function randseed(): Seed {
   const seedgen = () => Math.random() * 2 ** 32
