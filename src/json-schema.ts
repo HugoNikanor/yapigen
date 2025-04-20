@@ -1,6 +1,4 @@
 export {
-  return_type_name,
-  ts_name_for_reference,
   schema_to_typescript,
 
   schema_to_serializer,
@@ -24,25 +22,6 @@ import { assertUnreachable } from '@todo-3.0/lib/unreachable'
 import type { ObjectField } from './formatters/util'
 import { CodeFragment, cf, join_fragments } from './code-fragment'
 import type { CountedSymbol } from './counted-symbol'
-
-
-function return_type_name(
-  schema: Reference | Schema,
-  document: OpenAPISpec,
-): string | null {
-  const resolved_schema = resolve(schema, document)
-
-  if ('title' in resolved_schema) {
-    return resolved_schema.title
-  } else if ('$ref' in schema) {
-    const $ref = schema['$ref'] as string
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    return $ref.split('/').at(-1)!
-  } else {
-    return null
-  }
-}
-
 
 
 /**
