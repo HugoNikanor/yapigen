@@ -95,8 +95,8 @@ they are declared), set this to `false`.
  */
 function schema_to_typescript(args: {
   schema: Reference | Schema | boolean,
-  types_symbol: CountedSymbol | false,
-  string_formats: { [format: string]: FormatSpec },
+  types_symbol: CountedSymbol | false | 'expand',
+  string_formats: { [format: string]: FormatSpec } | false,
   document: OpenAPISpec,
 }): CodeFragment[] {
   if (args.schema === true) return [cf`any`]
@@ -109,12 +109,18 @@ function schema_to_typescript(args: {
 
     if ('$ref' in schema) {
       /* We assume that it's always a reference to a schema */
-      return [
-        (args.types_symbol
-          ? cf`${args.types_symbol}.`
-          : cf``),
-        cf`${ts_name_for_reference(schema as Reference, args.document)}`
-      ]
+
+      if (args.types_symbol === false) {
+        return [cf`${ts_name_for_reference(schema as Reference, args.document)}`]
+      } else if (args.types_symbol === 'expand') {
+        return inner(resolve(schema, args.document))
+      } else {
+        return [
+          cf`${args.types_symbol}.`,
+          cf`${ts_name_for_reference(schema as Reference, args.document)}`
+        ]
+      }
+
     } else if ('allOf' in schema) {
       return [cf`(`, ...join_fragments(cf` & `, schema.allOf.map(inner)), cf`)`]
     } else if ('oneOf' in schema) {
@@ -140,13 +146,15 @@ function schema_to_typescript(args: {
           } else {
             if (schema.format === undefined) {
               return [cf`string`]
-            } else {
+            } else if (args.string_formats) {
               const spec = args.string_formats[schema.format]
               if (!spec) {
                 throw new NotImplemented(`Strings with ${schema.format} format`)
               }
               return [new CodeFragment(spec.type,
                 { location: { path: ['@string-format', 'magic'] } })]
+            } else {
+              return [cf`string`]
             }
           }
         case 'array':
@@ -360,7 +368,11 @@ function schema_to_serializer_or_parser(
   if (schema === false) return [cf`(()=>{throw new Error})()`]
 
   /*
-  @returns if the field needs transforming
+  @returns
+  If the given value (`x`) needs to be transformed from a line format
+  to a proper format, then a code fragment evaluating to an expression
+  returning the "transformed" value is returned. If the value however
+  is fine as is, then `false` is returned.
    */
   function inner(schema: Schema | Reference, x: string): false | CodeFragment[] {
 
@@ -703,27 +715,39 @@ function schema_to_serializer_or_parser(
 
         case 'object':
           if ('properties' in schema) {
-            const modified: CodeFragment[] = []
+            const required_fields = schema.required ?? [] as string[]
+            const fields: CodeFragment[] = []
+            let modified_count = 0
             for (const [key, value] of Object.entries(schema.properties)) {
               const safe_key = ts_string(key)
+              // TODO remove bang?
               const c = inner(value, `(${x}[${safe_key}]!)`)
-              if (c === false) continue
-              if ((schema.required ?? [] as string[]).includes(key)) {
-                modified.push(cf`${safe_key}: `, ...c, cf`,\n`,)
+              if (c === false) {
+                if (required_fields.includes(key)) {
+                  fields.push(cf`${safe_key}: ${x}[${safe_key}],\n`)
+                } else {
+                  fields.push(cf`...(${safe_key} in ${x} ? { ${safe_key}: ${x}[${safe_key}] } : {}),\n`)
+                }
               } else {
-                modified.push(
-                  cf`...(${safe_key} in ${x} ? { ${safe_key}: `,
-                  ...c,
-                  cf` } : {}),\n`)
+                modified_count++
+                if (required_fields.includes(key)) {
+                  fields.push(cf`${safe_key}: `, ...c, cf`,\n`,)
+                } else {
+                  fields.push(
+                    cf`...(${safe_key} in ${x} ? { ${safe_key}: `,
+                    ...c,
+                    cf` } : {}),\n`)
+                }
               }
             }
-            if (modified.length === 0) {
+            /*
+            if (modified_count === 0) {
               return false
-            } else {
+              } else */ {
               return [
-                cf`({ ...${x}, `,
-                ...modified,
-                cf` })`]
+                // TODO don't ...`x`, instead find all unmodified fields and copy them explcitly.
+                // `x` will have all fields with custom string formats as type string
+                cf`({ `, ...fields, cf` })`]
             }
           } else {
             return false

@@ -5,7 +5,7 @@ import {
   change_refs,
   SchemaLike,
 } from './validator'
-import { schema_to_parser } from '../json-schema'
+import { schema_to_parser, schema_to_typescript } from '../json-schema'
 import type {
   HttpsSpecOpenapisOrgOas30Schema20241018 as OpenAPISpec,
   Reference,
@@ -14,6 +14,7 @@ import type {
 import { FormatSpec } from '../json-schema-formats'
 import { cf, CodeFragment } from '../code-fragment'
 import { resolve } from '../json-pointer'
+import type { CountedSymbol } from '../counted-symbol'
 
 /**
 Return a TypeScript fragment (as a string) consisting of a single expression, which
@@ -48,6 +49,7 @@ function validate_and_parse_body(args: {
   validators_symbol: string,
   gensym: (hint?: string) => string,
   string_formats: { [format: string]: FormatSpec },
+  types_symbol: CountedSymbol,
   document: OpenAPISpec,
 }): CodeFragment[] {
 
@@ -86,9 +88,26 @@ function validate_and_parse_body(args: {
     args.string_formats,
     validated_body_var)
 
+  /*
+  Rendering the type here could be considered double work, since we
+  already render the type when setting up the return from the full
+  function. Consider passing that along, instead of re-rendering it here.
+   */
+
+  // String formats disabled, since this is the step BEFORE we parse those
+  // TODO don't reference other types, but instead resolve them
+  const type = schema_to_typescript({
+    schema: args.schema,
+    // types_symbol: args.types_symbol,
+    types_symbol: 'expand',
+    // string_formats: args.string_formats,
+    string_formats: false,
+    document: args.document,
+  })
+
   return [
     cf`(() => {`,
     validator, cf`;\n`,
-    cf`const ${validated_body_var} = ${args.body_var} as any;
+    cf`const ${validated_body_var} = ${args.body_var} as `, ...type, cf`;
     return `, ...parser, cf`;})()`]
 }

@@ -120,6 +120,7 @@ function format_response(args: {
             header: header,
             generator_common_symbol: args.generator_common_symbol,
             validators_symbol: args.validators_symbol,
+            types_symbol: args.types_symbol,
 
             gensym: args.gensym,
             string_formats: args.string_formats,
@@ -146,6 +147,7 @@ function format_response(args: {
           header: header,
           generator_common_symbol: args.generator_common_symbol,
           validators_symbol: args.validators_symbol,
+          types_symbol: args.types_symbol,
 
           gensym: args.gensym,
           string_formats: args.string_formats,
@@ -189,6 +191,7 @@ function format_response(args: {
             gensym: args.gensym,
             string_formats: args.string_formats,
             document: args.document,
+            types_symbol: args.types_symbol,
           }))
 
         } else {
