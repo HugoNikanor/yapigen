@@ -604,7 +604,7 @@ const OUTPUT_PACKAGE = {
   scripts: {
     'build': 'tsc -b',
     'lint': 'eslint',
-    // TODO doc?
+    // TODO: typedoc? tsfmt?
   },
   dependencies: {
     'jsonschema': '^1.4.1',

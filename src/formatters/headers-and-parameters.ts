@@ -225,6 +225,14 @@ function unpack_parameter_expression(args: {
 
         if ('format' in schema) {
           // TODO in all these cases, we should attach the format as a parameter.
+          // For example, for the case
+          //     `{ type: 'string, format: 'uri' }`
+          // we wouldn't return `URL`, but rather
+          //     `{ value: URL, format: 'uri' }`.
+          // this would allow parity between parsed and non-parsed
+          // string types, and would allow the user to differentiate
+          // between types which parse to the same type, like all the
+          // date and time types for example.
           if (schema.format in args.string_formats) {
             fragments.push(
               cf`return `,
@@ -234,6 +242,7 @@ function unpack_parameter_expression(args: {
             return_type_override = false
           } else {
             // TODO change this to a warning, and return string
+            // See comment in `if ('format' in schema)` clause above
             throw new NotImplemented(`Strings with ${schema.format} format`)
           }
         } else {
@@ -583,6 +592,8 @@ function handle_object_schema_parameter(
 }
 
 /**
+Package a parameter of "simple" style for sending in a fetch request.
+
 @param schema
 @param value
 A TypeScript expression evaluating to the value we want to convert to
@@ -681,7 +692,7 @@ function handle_form_parameter(
       return [cf`[[${key}, '']]`]
 
     case "string":
-      // TODO format here?
+      // TODO string format here?
       return [cf`[[${key}, ${value}]]`]
 
     case "number":

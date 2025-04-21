@@ -2,6 +2,7 @@ export {
   intersperse,
   concat,
   accumulate,
+  type DeepRequired,
 }
 
 /**
@@ -40,4 +41,13 @@ function accumulate(l: number[]): number[] {
     result.push(current)
   }
   return result
+}
+
+
+/**
+Like `Required<T>`, but with all fields of all sub-structures also
+being required.
+ */
+type DeepRequired<T> = {
+  [K in keyof T]: Required<DeepRequired<T[K]>>
 }

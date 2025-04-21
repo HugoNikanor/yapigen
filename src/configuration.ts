@@ -13,6 +13,7 @@ import { FormatSpec, parse_string_format_spec } from './json-schema-formats.ts'
 import type { Schema } from './openapi.ts'
 import { expand_vars } from './expand-vars.ts'
 import type { Json } from '@todo-3.0/lib/json'
+import type { DeepRequired } from './util.ts'
 
 
 /*
@@ -36,7 +37,20 @@ Configuration loading flow:
  */
 
 type OutputEntry = {
+  /** Location in the filesystem where the entry should end up.
+   Relative paths are resolved relative to the configuration file. */
   path: string,
+
+  /**
+  When the generated code needs to import this library, it defaults to
+  doing so by relative path (from one generated file to the other). If
+  you however need explicit imports, set this.
+
+@example
+```
+'@my-library/generated-module'
+```
+   */
   libname?: string,
 }
 
@@ -44,9 +58,17 @@ type OutputEntry = {
 Configuration structure for the program.
  */
 type Configuration = {
-  /* Read specification from this file. Required. */
+  /** Read specification from this file. Required. */
   input: string,
 
+  /**
+  Files to output.
+
+Currently, all possible files must always be generated. Their
+destination may however be a "dump" file (such as `/dev/null`).
+
+@see {@link OutputEntry}
+   */
   output: {
     types: OutputEntry,
     calls: OutputEntry,
@@ -56,10 +78,21 @@ type Configuration = {
     server_router: OutputEntry,
   },
 
-  /* TODO document these */
+  /**
+  Files to add to allow a "standalone" project to be generated.
+
+These are mainly for testing purposes, and "real" projects should
+provide their own.
+
+They are all filenames, and should use the "expected" names
+(`package.json`, `tsconfig.json`, ...)
+   */
   standalone?: {
+    /** Output path for eslint configuration */
     eslint?: string,
+    /** Output path for package.json */
     package?: string,
+    /** Output path for tsconfig.json */
     tsconfig?: string,
   },
 
@@ -472,6 +505,7 @@ async function parse_command_line(
 }
 
 
+
 /** This validates that our Configuration type and our schema
 declaration are in sync.
 
@@ -485,12 +519,12 @@ function self_test() {
   const sample_config = {
     input: '',
     output: {
-      types: { path: '' },
-      calls: { path: '' },
-      common: { path: '' },
-      validators: { path: '' },
-      server_handler_types: { path: '' },
-      server_router: { path: '' },
+      types: { path: '', libname: '' },
+      calls: { path: '', libname: '' },
+      common: { path: '', libname: '' },
+      validators: { path: '', libname: '' },
+      server_handler_types: { path: '', libname: '' },
+      server_router: { path: '', libname: '' },
     },
     standalone: {
       eslint: '',
@@ -501,7 +535,7 @@ function self_test() {
     'include-source-locations': 'mapped',
     'gensym-seed': [0, 0, 0, 0],
     string_formats: {},
-  } satisfies Required<Configuration> /* TODO deep required */
+  } satisfies DeepRequired<Configuration>
 
   const validator = new Validator
   validator.validate(
