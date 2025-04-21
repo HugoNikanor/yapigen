@@ -7,10 +7,10 @@ export {
 
 import type {
   Schema
-} from '../openapi'
-import { CodeFragment, cf } from '../code-fragment'
-import { to_ts_identifier } from '../ts-identifier'
-import { typename } from './schema'
+} from '../openapi.ts'
+import { CodeFragment, cf } from '../code-fragment.ts'
+import { to_ts_identifier } from '../ts-identifier.ts'
+import { typename } from './schema.ts'
 
 
 /**

@@ -4,16 +4,16 @@ import {
   validator_function_name,
   change_refs,
   SchemaLike,
-} from './validator'
-import { schema_to_parser } from '../json-schema'
+} from './validator.ts'
+import { schema_to_parser } from '../json-schema.ts'
 import type {
   HttpsSpecOpenapisOrgOas30Schema20241018 as OpenAPISpec,
   Reference,
   Schema,
-} from '../openapi'
-import { FormatSpec } from '../json-schema-formats'
-import { cf, CodeFragment } from '../code-fragment'
-import { resolve } from '../json-pointer'
+} from '../openapi.ts'
+import { FormatSpec } from '../json-schema-formats.ts'
+import { cf, CodeFragment } from '../code-fragment.ts'
+import { resolve } from '../json-pointer.ts'
 
 /**
 Return a TypeScript fragment (as a string) consisting of a single expression, which

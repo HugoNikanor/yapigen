@@ -5,11 +5,11 @@
     "declarationMap": false,
     "sourceMap": true,
     "lib": ["es2023"],
-    "module": "es2022",
+    "module": "NodeNext",
     "outDir": "./dist",
     "resolveJsonModule": true,
     "rewriteRelativeImportExtensions": true,
-    "moduleResolution": "bundler",
+    "moduleResolution": "NodeNext",
     "target": "es2021",
     "exactOptionalPropertyTypes": true,
     "strict": true

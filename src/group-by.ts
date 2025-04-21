@@ -7,7 +7,7 @@ See other repo for tests, ...
 @module
  */
 
-import { MultiMap } from './multi-map'
+import { MultiMap } from './multi-map.ts'
 
 function group_by<T, K>(f: (x: T) => K, xs: T[]): Map<K, T[]> {
   const map = new MultiMap<K, T>

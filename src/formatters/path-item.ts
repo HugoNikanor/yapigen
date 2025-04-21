@@ -10,25 +10,25 @@ import type {
   PathItem,
   HttpsSpecOpenapisOrgOas30Schema20241018 as OpenAPISpec,
   SecurityRequirement,
-} from '../openapi'
+} from '../openapi.ts'
 
 import {
   format_operation_api_call,
   format_operation_as_server_endpoint_handler,
   format_operation_as_server_endpoint_handler_type,
   operations,
-} from './operation'
-import { resolve } from '../json-pointer'
+} from './operation.ts'
+import { resolve } from '../json-pointer.ts'
 
-import { CodeFragment, cf } from '../code-fragment'
+import { CodeFragment, cf } from '../code-fragment.ts'
 import {
   ts_string,
   object_to_type,
   parse_uri_path,
-} from './util'
-import type { FormatSpec } from '../json-schema-formats'
+} from './util.ts'
+import type { FormatSpec } from '../json-schema-formats.ts'
 
-import type { CountedSymbol } from '../counted-symbol'
+import type { CountedSymbol } from '../counted-symbol.ts'
 
 /**
 Generate API call functions from a PathItem.

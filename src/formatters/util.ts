@@ -10,8 +10,8 @@ export {
   LocationIdentifier,
 }
 
-import { escape } from '../escape'
-import { cf, CodeFragment } from '../code-fragment'
+import { escape } from '../escape.ts'
+import { cf, CodeFragment } from '../code-fragment.ts'
 
 /**
 Entry in an object mapping keys to types.

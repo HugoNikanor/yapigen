@@ -3,7 +3,7 @@ export { resolve }
 import type {
   HttpsSpecOpenapisOrgOas30Schema20241018 as OpenAPISpec,
   Reference,
-} from './openapi'
+} from './openapi.ts'
 
 import type { Json } from '@todo-3.0/lib/json'
 import { isObject } from '@todo-3.0/lib/util'

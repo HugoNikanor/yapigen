@@ -25,16 +25,16 @@ import type {
   Parameter,
   Schema,
   HttpsSpecOpenapisOrgOas30Schema20241018 as OpenAPISpec,
-} from '../openapi'
+} from '../openapi.ts'
 
-import { CodeFragment, cf } from '../code-fragment'
-import type { FormatSpec } from '../json-schema-formats'
-import { resolve } from '../json-pointer'
-import { NotImplemented } from '../not-implemented'
-import { ObjectField, ts_string, map_to_ts_object } from './util'
-import { validate_and_parse_body } from './validate-body'
-import { schema_to_typescript } from '../json-schema'
-import type { CountedSymbol } from '../counted-symbol'
+import { CodeFragment, cf } from '../code-fragment.ts'
+import type { FormatSpec } from '../json-schema-formats.ts'
+import { resolve } from '../json-pointer.ts'
+import { NotImplemented } from '../not-implemented.ts'
+import { ObjectField, ts_string, map_to_ts_object } from './util.ts'
+import { validate_and_parse_body } from './validate-body.ts'
+import { schema_to_typescript } from '../json-schema.ts'
+import type { CountedSymbol } from '../counted-symbol.ts'
 
 /**
 Return a TypeScript fragment, which when evaluated, is the parsed form

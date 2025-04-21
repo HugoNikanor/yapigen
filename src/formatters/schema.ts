@@ -6,12 +6,12 @@ export {
 import type {
   HttpsSpecOpenapisOrgOas30Schema20241018 as OpenAPISpec,
   Schema,
-} from '../openapi'
+} from '../openapi.ts'
 
-import { schema_to_typescript } from '../json-schema'
-import { to_ts_identifier } from '../ts-identifier'
-import { CodeFragment, cf } from '../code-fragment'
-import type { FormatSpec } from '../json-schema-formats'
+import { schema_to_typescript } from '../json-schema.ts'
+import { to_ts_identifier } from '../ts-identifier.ts'
+import { CodeFragment, cf } from '../code-fragment.ts'
+import type { FormatSpec } from '../json-schema-formats.ts'
 
 function typename(name: string, schema: Schema): string {
   return to_ts_identifier(schema.title ?? name)

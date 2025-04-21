@@ -5,18 +5,18 @@ import type {
   Response,
   Header,
   SecurityRequirement,
-} from '../openapi'
-import { resolve } from '../json-pointer'
-import { object_to_type, ts_string, map_to_ts_object } from './util'
+} from '../openapi.ts'
+import { resolve } from '../json-pointer.ts'
+import { object_to_type, ts_string, map_to_ts_object } from './util.ts'
 import {
   format_parameter,
   unpack_parameter_expression,
-} from './headers-and-parameters'
-import { CodeFragment, cf } from '../code-fragment'
-import { FormatSpec } from '../json-schema-formats'
-import { validate_and_parse_body } from './validate-body'
-import { is_authenticated } from './authentication'
-import type { CountedSymbol } from '../counted-symbol'
+} from './headers-and-parameters.ts'
+import { CodeFragment, cf } from '../code-fragment.ts'
+import { FormatSpec } from '../json-schema-formats.ts'
+import { validate_and_parse_body } from './validate-body.ts'
+import { is_authenticated } from './authentication.ts'
+import type { CountedSymbol } from '../counted-symbol.ts'
 
 /**
 Generate code to handle one response from a fetch request.

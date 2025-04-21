@@ -13,10 +13,10 @@ export {
 }
 
 import { decode as vlq_decode } from 'vlq'
-import type { Schema } from './openapi'
+import type { Schema } from './openapi.ts'
 
 import { zip } from '@todo-3.0/lib/util'
-import { accumulate } from './util'
+import { accumulate } from './util.ts'
 
 type FragmentInfo = {
   /* Index of first character of fragment in generated text */

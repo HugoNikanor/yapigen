@@ -9,19 +9,19 @@ import type {
   HttpsSpecOpenapisOrgOas30Schema20241018 as OpenAPISpec,
   Schema,
   Reference,
-} from './openapi'
+} from './openapi.ts'
 
-import { resolve } from './json-pointer'
-import { object_to_type, ts_string } from './formatters/util'
-import { to_ts_identifier } from './ts-identifier'
-import { NotImplemented } from './not-implemented'
+import { resolve } from './json-pointer.ts'
+import { object_to_type, ts_string } from './formatters/util.ts'
+import { to_ts_identifier } from './ts-identifier.ts'
+import { NotImplemented } from './not-implemented.ts'
 
-import type { FormatSpec } from './json-schema-formats'
+import type { FormatSpec } from './json-schema-formats.ts'
 import { assertUnreachable } from '@todo-3.0/lib/unreachable'
 
-import type { ObjectField } from './formatters/util'
-import { CodeFragment, cf, join_fragments } from './code-fragment'
-import type { CountedSymbol } from './counted-symbol'
+import type { ObjectField } from './formatters/util.ts'
+import { CodeFragment, cf, join_fragments } from './code-fragment.ts'
+import type { CountedSymbol } from './counted-symbol.ts'
 
 
 /**

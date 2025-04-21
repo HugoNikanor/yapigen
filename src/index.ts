@@ -4,29 +4,29 @@ import * as YAML from 'yaml'
 import * as fs from 'node:fs/promises'
 import * as path from 'node:path'
 import * as prettier from 'prettier'
-import type { OutputEntry, Configuration } from './configuration'
-import { parse_command_line } from './configuration'
+import type { OutputEntry, Configuration } from './configuration.ts'
+import { parse_command_line } from './configuration.ts'
 
 import type {
   HttpsSpecOpenapisOrgOas30Schema20241018 as OpenAPISpec,
-} from './openapi'
+} from './openapi.ts'
 
 import {
   format_path_item_as_api_call,
   format_path_item_setup_server_router,
   format_path_item_as_server_endpoint_handlers,
   format_path_item_as_server_handler_types,
-} from './formatters/path-item'
-import { format_schema } from './formatters/schema'
-import { format_type_validator, change_refs, SchemaLike } from './formatters/validator'
-import { resolve } from './json-pointer'
-import { CodeFragment, cf } from './code-fragment'
-import { ts_string } from './formatters/util'
-import type { FormatSpec } from './json-schema-formats'
-import { DEFAULT_STRING_FORMATS } from './json-schema-formats'
-import package_json from '../package.json'
+} from './formatters/path-item.ts'
+import { format_schema } from './formatters/schema.ts'
+import { format_type_validator, change_refs, SchemaLike } from './formatters/validator.ts'
+import { resolve } from './json-pointer.ts'
+import { CodeFragment, cf } from './code-fragment.ts'
+import { ts_string } from './formatters/util.ts'
+import type { FormatSpec } from './json-schema-formats.ts'
+import { DEFAULT_STRING_FORMATS } from './json-schema-formats.ts'
+import package_json from '../package.json' with { type: 'json' }
 import * as crypto from 'node:crypto'
-import { CountedSymbol } from './counted-symbol'
+import { CountedSymbol } from './counted-symbol.ts'
 
 
 function preamble(f: string) {
@@ -52,10 +52,10 @@ function get_import_path(current: OutputEntry, other: OutputEntry): string {
   return import_path
 }
 
-import { get_gensym } from './gensym'
-import { sfc32, randseed } from './srand'
+import { get_gensym } from './gensym.ts'
+import { sfc32, randseed } from './srand.ts'
 
-import { LocationIdentifier, get_here } from './formatters/util'
+import { LocationIdentifier, get_here } from './formatters/util.ts'
 
 function import_star(args: {
   as: string,

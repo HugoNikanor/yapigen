@@ -15,12 +15,12 @@ import type {
   RequestBody,
   SecurityRequirement,
   Schema,
-} from '../openapi'
-import { resolve } from '../json-pointer'
+} from '../openapi.ts'
+import { resolve } from '../json-pointer.ts'
 import {
   schema_to_typescript,
   schema_to_serializer,
-} from '../json-schema'
+} from '../json-schema.ts'
 import {
   ObjectField,
   object_to_type,
@@ -29,21 +29,21 @@ import {
   generate_funcall,
   generate_switch,
   get_here,
-} from './util'
-import { format_response } from './response'
-import '../group-by'
-import { NotImplemented } from '../not-implemented'
+} from './util.ts'
+import { format_response } from './response.ts'
+import '../group-by.ts'
+import { NotImplemented } from '../not-implemented.ts'
 import {
   format_parameter,
   unpack_parameter_expression,
   pack_parameter_expression,
-} from './headers-and-parameters'
-import { CodeFragment, cf, join_fragments } from '../code-fragment'
+} from './headers-and-parameters.ts'
+import { CodeFragment, cf, join_fragments } from '../code-fragment.ts'
 import { assertUnreachable } from '@todo-3.0/lib/unreachable'
-import type { FormatSpec } from '../json-schema-formats'
-import { validate_and_parse_body } from './validate-body'
-import { is_authenticated } from './authentication'
-import type { CountedSymbol } from '../counted-symbol'
+import type { FormatSpec } from '../json-schema-formats.ts'
+import { validate_and_parse_body } from './validate-body.ts'
+import { is_authenticated } from './authentication.ts'
+import type { CountedSymbol } from '../counted-symbol.ts'
 import type { Unlist } from '@todo-3.0/lib/unlist'
 
 const operations = ['get', 'put', 'post', 'delete', 'options', 'head', 'patch', 'trace'] as const

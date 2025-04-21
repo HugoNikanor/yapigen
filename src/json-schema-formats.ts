@@ -4,7 +4,7 @@ export {
   parse_string_format_spec,
 }
 
-import { ts_string } from './formatters/util'
+import { ts_string } from './formatters/util.ts'
 import { isObject } from '@todo-3.0/lib/util'
 
 type FormatSpec = {

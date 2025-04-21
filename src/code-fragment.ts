@@ -5,14 +5,14 @@ export {
 }
 
 import * as path from 'node:path'
-import { concat, intersperse } from './util'
-import type { SourceMap } from './source-map'
+import { concat, intersperse } from './util.ts'
+import type { SourceMap } from './source-map.ts'
 import {
   find_source_location,
   find_and_get_source_map,
-} from './source-map'
+} from './source-map.ts'
 import { assertUnreachable } from '@todo-3.0/lib/unreachable'
-import type { CountedSymbol } from './counted-symbol'
+import type { CountedSymbol } from './counted-symbol.ts'
 
 /**
 Representations of fragments of code.

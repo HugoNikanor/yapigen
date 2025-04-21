@@ -1,6 +1,6 @@
 export { is_authenticated }
 
-import type { SecurityRequirement } from '../openapi'
+import type { SecurityRequirement } from '../openapi.ts'
 
 function is_authenticated(security_options: SecurityRequirement[]): boolean {
   return !(

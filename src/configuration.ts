@@ -9,9 +9,9 @@ import * as YAML from 'yaml'
 import * as fs from 'node:fs/promises'
 import * as os from 'node:os'
 import { Validator, ValidatorResult } from 'jsonschema'
-import { FormatSpec, parse_string_format_spec } from './json-schema-formats'
-import type { Schema } from './openapi'
-import { expand_vars } from './expand-vars'
+import { FormatSpec, parse_string_format_spec } from './json-schema-formats.ts'
+import type { Schema } from './openapi.ts'
+import { expand_vars } from './expand-vars.ts'
 import type { Json } from '@todo-3.0/lib/json'
 
 
