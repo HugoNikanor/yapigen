@@ -73,7 +73,7 @@ async function main(): Promise<number> {
   const start = new Date
   const configuration = await parse_command_line()
 
-  if (!configuration) return 1
+  if (typeof configuration === 'number') return configuration
 
   console.log('Continuing with configuration:', configuration)
 

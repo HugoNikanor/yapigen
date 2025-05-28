@@ -371,7 +371,7 @@ type FormatSpecFunction = {
 }
 
 async function parse_command_line(
-): Promise<Configuration | null> {
+): Promise<Configuration | number> {
   let configuration: Partial<Omit<Configuration, 'output'>> & {
     output: Partial<Configuration['output']>,
     'string-formats'?: {
@@ -483,7 +483,7 @@ async function parse_command_line(
       }
     }
     console.error()
-    return null
+    return 1
   }
 
   /*
