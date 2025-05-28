@@ -14,6 +14,7 @@ import type { Schema } from './openapi.ts'
 import { expand_vars } from './expand-vars.ts'
 import type { Json } from '@todo-3.0/lib/json'
 import type { DeepRequired } from './util.ts'
+import package_json from '../package.json' with { type: 'json' }
 
 
 /*
@@ -397,6 +398,17 @@ async function parse_command_line(
 
   for (let i = 2; i < process.argv.length; i++) {
     switch (process.argv[i]) {
+
+      case '--help':
+      case '-h':
+        // TODO write better help
+        console.log(`Yapigen ${package_json.version}`)
+        console.log(`    yapigen --config generator.yaml`)
+        return 0
+
+      case '--version':
+        console.log(package_json.version)
+        return 0
 
       case '--conf-format': {
         const format = process.argv[++i]
