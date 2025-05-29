@@ -235,6 +235,7 @@ ${validator_symbol}.addSchema(
     const generator_common_symbol = new CountedSymbol(gensym('generator_common'))
     const types_symbol = new CountedSymbol(gensym('types'))
     const validators_symbol = gensym('validators')
+    const unlist_symbol = new CountedSymbol(gensym('Unlist'))
     await generate({
       ...config_common,
       preamble_path: preamble('calls.ts'),
@@ -258,6 +259,7 @@ ${validator_symbol}.addSchema(
             generator_common_symbol: generator_common_symbol,
             types_symbol: types_symbol,
             validators_symbol: validators_symbol,
+            unlist_symbol: unlist_symbol,
             gensym: gensym,
             string_formats: string_formats,
             document: document,
@@ -281,6 +283,9 @@ ${validator_symbol}.addSchema(
           })]
           : []),
 
+        ...(unlist_symbol.count > 0
+          ? [cf`import type { Unlist as ${unlist_symbol} } from '@todo-3.0/lib/unlist';\n`]
+          : [])
       ],
     })
   }
@@ -355,6 +360,7 @@ ${validator_symbol}.addSchema(
         result.push(cf`import ${express_symbol} from 'express';\n`)
 
         const qs_lib_symbol = new CountedSymbol(gensym('qs'))
+        const unlist_symbol = new CountedSymbol(gensym('Unlist'))
 
         result.push(...format_path_item_setup_server_router(
           document.paths, handler_types_symbol, express_symbol, gensym))
@@ -372,6 +378,7 @@ ${validator_symbol}.addSchema(
               validators_symbol: validators_symbol,
               express_symbol: express_symbol,
               qs_lib_symbol: qs_lib_symbol,
+              unlist_symbol: unlist_symbol,
 
               gensym: gensym,
               string_formats: string_formats,
@@ -398,6 +405,10 @@ ${validator_symbol}.addSchema(
 
         if (qs_lib_symbol.count > 0) {
           result.push(cf`import * as ${qs_lib_symbol} from 'qs';\n`)
+        }
+
+        if (unlist_symbol.count > 0) {
+          result.push(cf`import type { Unlist as ${unlist_symbol} } from '@todo-3.0/lib/unlist';\n`)
         }
 
         return result

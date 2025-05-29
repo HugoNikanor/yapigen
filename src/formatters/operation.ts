@@ -125,6 +125,7 @@ function format_operation_api_call(args: {
   generator_common_symbol: CountedSymbol,
   types_symbol: CountedSymbol,
   validators_symbol: string,
+  unlist_symbol: CountedSymbol,
 
   gensym: (hint?: string) => string,
   string_formats: { [format: string]: FormatSpec },
@@ -562,6 +563,7 @@ function format_operation_api_call(args: {
         generator_common_symbol: args.generator_common_symbol,
         types_symbol: args.types_symbol,
         validators_symbol: args.validators_symbol,
+        unlist_symbol: args.unlist_symbol,
 
         gensym: args.gensym,
         string_formats: args.string_formats,
@@ -608,6 +610,7 @@ function format_operation_as_server_endpoint_handler(args: {
   validators_symbol: string,
   express_symbol: string,
   qs_lib_symbol: CountedSymbol,
+  unlist_symbol: CountedSymbol,
 
   gensym: (hint?: string) => string,
   string_formats: { [format: string]: FormatSpec },
@@ -719,6 +722,7 @@ function format_operation_as_server_endpoint_handler(args: {
         header: parameter,
         generator_common_symbol: args.generator_common_symbol,
         validators_symbol: args.validators_symbol,
+        unlist_symbol: args.unlist_symbol,
 
         gensym: args.gensym,
         string_formats: args.string_formats,

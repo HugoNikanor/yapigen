@@ -61,6 +61,7 @@ function format_response(args: {
   generator_common_symbol: CountedSymbol,
   types_symbol: CountedSymbol,
   validators_symbol: string,
+  unlist_symbol: CountedSymbol,
 
   gensym: (hint?: string) => string,
   string_formats: { [format: string]: FormatSpec },
@@ -120,6 +121,7 @@ function format_response(args: {
             header: header,
             generator_common_symbol: args.generator_common_symbol,
             validators_symbol: args.validators_symbol,
+            unlist_symbol: args.unlist_symbol,
 
             gensym: args.gensym,
             string_formats: args.string_formats,
@@ -146,6 +148,7 @@ function format_response(args: {
           header: header,
           generator_common_symbol: args.generator_common_symbol,
           validators_symbol: args.validators_symbol,
+          unlist_symbol: args.unlist_symbol,
 
           gensym: args.gensym,
           string_formats: args.string_formats,

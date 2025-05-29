@@ -58,6 +58,7 @@ function unpack_parameter_expression(args: {
   header_field: string,
   header: (Header | Parameter) & { name: string },
   generator_common_symbol: CountedSymbol,
+  unlist_symbol: CountedSymbol,
   validators_symbol: string,
   gensym: (hint?: string) => string,
   string_formats: { [format: string]: FormatSpec },
@@ -137,7 +138,7 @@ function unpack_parameter_expression(args: {
         throw new ${args.generator_common_symbol}.APIMalformedError(
             ${hname} + ' not in ' + ${enumv})
         }\n`)
-      return_type_override = `${args.generator_common_symbol}.Unlist<${enumv}>`
+      return_type_override = `${args.unlist_symbol}<${enumv}>`
     }
 
     if ('const' in schema) {
