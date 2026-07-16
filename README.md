@@ -63,7 +63,7 @@ for the application program to build upon, while the generated files should
 never be touched by the programmer.
 
 Data provided by the program is assumed well formed (and therefore only checked
-by the TypeScript type system), while data recieved over the is untrusted, and
+by the TypeScript type system), while data recieved over the network is untrusted, and
 will be carefully validated, before being passed to the user (of the generated
 code), along with a proper TypeScript signature.
 
@@ -345,7 +345,7 @@ Deviations from the Standard
 ### Content-Type handling
 OpenAPI specifies that content type matches are *exact*, meaning that
 `text/plain` and `text/plain; encoding=utf8` are treated as completely separate
-content types. The generated instead treats both of these as `text/plain`, and
+content types. The generated code instead treats both of these as `text/plain`, and
 handles encoding (and other relevant parameters) beforehand. API's where
 actually different content types are added by parameters in the header are
 **not** supported (just use an actually different content type).
